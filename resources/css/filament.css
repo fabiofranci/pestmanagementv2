@@ -1,0 +1,59 @@
+/* Watermark and Filament theme overrides */
+
+.filament-app::before,
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image: url('/images/filament-watermark.svg');
+  background-repeat: no-repeat;
+  background-position: center 8%;
+  background-size: 30%;
+  opacity: 0.12;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.filament-app, .filament-layout, .filament-main {
+  position: relative;
+  z-index: 1;
+}
+
+.filament-sidebar, .filament-topbar {
+  background-color: #0b6e4f !important;
+}
+
+.filament-brand {
+  color: #f7b500 !important;
+}
+
+.filament-button-primary {
+  background-color: #0b6e4f !important;
+  border-color: #0b6e4f !important;
+}
+
+/* Small responsive tweaks */
+@media (max-width: 640px) {
+  .filament-app::before {
+    background-size: 60%;
+  }
+}
+
+/* Ensure watermark appears on login / other Filament pages that don't use .filament-app */
+html::before, .filament-login::before {
+  content: "" !important;
+  position: fixed !important;
+  inset: 0 !important;
+  background-image: url('/images/filament-watermark.svg') !important;
+  background-repeat: no-repeat !important;
+  background-position: center 8% !important;
+  background-size: 30% !important;
+  opacity: 0.12 !important;
+  pointer-events: none !important;
+  z-index: 0 !important;
+}
+
+/* ensure main panels sit above */
+.filament-login, html, body {
+  position: relative;
+}
