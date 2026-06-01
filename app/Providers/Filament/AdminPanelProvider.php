@@ -16,13 +16,17 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Theme;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Colors\Color;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
+use Illuminate\Foundation\Vite;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -31,12 +35,12 @@ class AdminPanelProvider extends PanelProvider
 {
     public function panel(Panel $panel): Panel
     {
-        return $panel
+        $panel = $panel
             ->default()
             ->id('admin')
             ->path('admin')
             ->brandName('Pest Management V2')
-            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->theme($this->adminTheme())
             ->font(
                 fn (): string => app(PanelAppearance::class)->resolve()['font_family'],
                 provider: GoogleFontProvider::class,
@@ -101,5 +105,32 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ]);
+
+        return $panel;
+    }
+
+    protected function adminTheme(): Theme
+    {
+        return Theme::make('admin-theme')
+            ->html(fn (): Htmlable => $this->hasAdminThemeAsset()
+                ? app(Vite::class)('resources/css/filament/admin/theme.css')
+                : FilamentAsset::getTheme('app')->getHtml());
+    }
+
+    protected function hasAdminThemeAsset(): bool
+    {
+        if (is_file(public_path('hot'))) {
+            return true;
+        }
+
+        $manifestPath = public_path('build/manifest.json');
+
+        if (! is_file($manifestPath)) {
+            return false;
+        }
+
+        $manifest = json_decode(file_get_contents($manifestPath) ?: '[]', true);
+
+        return is_array($manifest) && array_key_exists('resources/css/filament/admin/theme.css', $manifest);
     }
 }

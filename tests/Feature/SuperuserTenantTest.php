@@ -2,10 +2,11 @@
 
 namespace Tests\Feature;
 
+use App\Models\Tenant;
+use App\Models\User;
 use Database\Seeders\SuperuserSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
-use App\Models\User;
 
 class SuperuserTenantTest extends TestCase
 {
@@ -26,5 +27,20 @@ class SuperuserTenantTest extends TestCase
         }
 
         $this->assertTrue($user->hasRole('SUPERUSER'));
+    }
+
+    public function test_superuser_seeder_backfills_super_tenant_database_name(): void
+    {
+        Tenant::query()->create([
+            'name' => 'Super Tenant',
+            'slug' => 'super-tenant',
+            'status' => 'active',
+        ]);
+
+        $this->seed(SuperuserSeeder::class);
+
+        $tenant = Tenant::query()->where('slug', 'super-tenant')->firstOrFail();
+
+        $this->assertSame('tenant_super_tenant', $tenant->db_database);
     }
 }

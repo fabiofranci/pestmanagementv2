@@ -10,6 +10,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
+use Illuminate\Validation\Rule;
 
 class CreateTenantAdminAction
 {
@@ -30,7 +31,7 @@ class CreateTenantAdminAction
                     ->required()
                     ->maxLength(255)
                     ->autocomplete(false)
-                    ->unique(User::class, 'email', ignoreRecord: false)
+                    ->rule(Rule::unique(User::class, 'email'))
                     ->helperText('Questo utente fara il login centrale e vedra solo il tenant selezionato.'),
                 TextInput::make('password')
                     ->label('Password iniziale')

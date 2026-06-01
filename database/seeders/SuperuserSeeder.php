@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy\TenantDatabaseProvisioner;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
@@ -16,15 +17,16 @@ class SuperuserSeeder extends Seeder
     public function run(): void
     {
         // Create or get a default tenant used for admin purposes
-        $tenant = Tenant::firstOrCreate(
-            ['slug' => 'super-tenant'],
-            [
-                'name' => 'Super Tenant',
-                'domain' => 'localhost',
-                'db_database' => 'tenant_super_tenant',
-                'status' => 'active',
-            ]
-        );
+        $tenant = Tenant::firstOrNew(['slug' => 'super-tenant']);
+        $tenant->name ??= 'Super Tenant';
+        $tenant->domain ??= 'localhost';
+        $tenant->db_database ??= 'tenant_super_tenant';
+        $tenant->status ??= 'active';
+        $tenant->save();
+
+        if ($this->shouldProvisionTenantDatabase($tenant)) {
+            app(TenantDatabaseProvisioner::class)->provision($tenant);
+        }
 
         // Create a SUPERUSER role scoped to the tenant
         $role = Role::firstOrCreate([
@@ -50,5 +52,10 @@ class SuperuserSeeder extends Seeder
                 $role->id => ['tenant_id' => $tenant->id],
             ]);
         }
+    }
+
+    protected function shouldProvisionTenantDatabase(Tenant $tenant): bool
+    {
+        return filled($tenant->db_database) && ! app()->runningUnitTests();
     }
 }
