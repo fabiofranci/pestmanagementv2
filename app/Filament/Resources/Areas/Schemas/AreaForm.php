@@ -12,22 +12,25 @@ class AreaForm
     {
         return $schema
             ->components([
-                TextInput::make('tenant_id')
-                    ->required()
-                    ->numeric(),
                 TextInput::make('customer_site_id')
+                    ->label('Sede cliente')
                     ->required()
                     ->numeric(),
                 TextInput::make('service_type_id')
+                    ->label('Tipo di servizio')
                     ->required()
                     ->numeric(),
                 TextInput::make('name')
+                    ->label('Nome')
                     ->required(),
                 Textarea::make('description')
+                    ->label('Descrizione')
                     ->columnSpanFull(),
                 Textarea::make('thresholds')
+                    ->label('Soglie')
                     ->columnSpanFull(),
                 TextInput::make('status')
+                    ->label('Stato')
                     ->required()
                     ->default('active'),
             ]);

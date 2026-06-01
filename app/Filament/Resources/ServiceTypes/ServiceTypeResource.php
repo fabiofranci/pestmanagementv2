@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\ServiceTypes;
 
+use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\ServiceTypes\Pages\CreateServiceType;
 use App\Filament\Resources\ServiceTypes\Pages\EditServiceType;
 use App\Filament\Resources\ServiceTypes\Pages\ListServiceTypes;
@@ -9,18 +10,23 @@ use App\Filament\Resources\ServiceTypes\Schemas\ServiceTypeForm;
 use App\Filament\Resources\ServiceTypes\Tables\ServiceTypesTable;
 use App\Models\ServiceType;
 use BackedEnum;
-use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
-class ServiceTypeResource extends Resource
+class ServiceTypeResource extends TenantScopedResource
 {
     protected static ?string $model = ServiceType::class;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'name';
+
+    protected static ?string $navigationLabel = 'Tipi di servizio';
+
+    protected static ?string $modelLabel = 'tipo di servizio';
+
+    protected static ?string $pluralModelLabel = 'tipi di servizio';
 
     public static function form(Schema $schema): Schema
     {

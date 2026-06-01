@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class MonitoringPoint extends Model
 {
     use HasFactory;
+    use UsesTenantConnection;
 
     protected $fillable = [
         'tenant_id',

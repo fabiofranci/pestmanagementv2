@@ -12,28 +12,38 @@ class CustomerSiteForm
     {
         return $schema
             ->components([
-                TextInput::make('tenant_id')
-                    ->required()
-                    ->numeric(),
                 TextInput::make('customer_id')
+                    ->label('Cliente')
                     ->required()
                     ->numeric(),
                 TextInput::make('name')
+                    ->label('Nome')
                     ->required(),
-                TextInput::make('address'),
-                TextInput::make('city'),
-                TextInput::make('postcode'),
-                TextInput::make('province'),
-                TextInput::make('country'),
-                TextInput::make('contact_name'),
+                TextInput::make('address')
+                    ->label('Indirizzo'),
+                TextInput::make('city')
+                    ->label('Città'),
+                TextInput::make('postcode')
+                    ->label('CAP'),
+                TextInput::make('province')
+                    ->label('Provincia'),
+                TextInput::make('country')
+                    ->label('Paese'),
+                TextInput::make('contact_name')
+                    ->label('Nome referente'),
                 TextInput::make('contact_phone')
+                    ->label('Telefono referente')
                     ->tel(),
                 TextInput::make('contact_email')
+                    ->label('Email referente')
                     ->email(),
-                TextInput::make('site_code'),
+                TextInput::make('site_code')
+                    ->label('Codice sede'),
                 Textarea::make('notes')
+                    ->label('Note')
                     ->columnSpanFull(),
                 TextInput::make('status')
+                    ->label('Stato')
                     ->required()
                     ->default('active'),
             ]);

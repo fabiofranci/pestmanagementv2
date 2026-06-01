@@ -14,24 +14,27 @@ class AreasTable
     {
         return $table
             ->columns([
-                TextColumn::make('tenant_id')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('customer_site_id')
+                    ->label('Sede cliente')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('service_type_id')
+                    ->label('Tipo di servizio')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('name')
+                    ->label('Nome')
                     ->searchable(),
                 TextColumn::make('status')
+                    ->label('Stato')
                     ->searchable(),
                 TextColumn::make('created_at')
+                    ->label('Creato il')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
+                    ->label('Aggiornato il')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

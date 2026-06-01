@@ -14,41 +14,51 @@ class ContractsTable
     {
         return $table
             ->columns([
-                TextColumn::make('tenant_id')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('customer_id')
+                    ->label('Cliente')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('customer_site_id')
+                    ->label('Sede cliente')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('contract_number')
+                    ->label('Numero contratto')
                     ->searchable(),
                 TextColumn::make('status')
+                    ->label('Stato')
                     ->searchable(),
                 TextColumn::make('start_date')
+                    ->label('Data inizio')
                     ->date()
                     ->sortable(),
                 TextColumn::make('end_date')
+                    ->label('Data fine')
                     ->date()
                     ->sortable(),
                 TextColumn::make('renewal')
+                    ->label('Rinnovo')
                     ->searchable(),
                 TextColumn::make('term')
+                    ->label('Durata')
                     ->searchable(),
                 TextColumn::make('payment_terms')
+                    ->label('Condizioni di pagamento')
                     ->searchable(),
                 TextColumn::make('total_value')
+                    ->label('Valore totale')
                     ->numeric()
                     ->sortable(),
                 TextColumn::make('currency')
+                    ->label('Valuta')
                     ->searchable(),
                 TextColumn::make('created_at')
+                    ->label('Creato il')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
+                    ->label('Aggiornato il')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

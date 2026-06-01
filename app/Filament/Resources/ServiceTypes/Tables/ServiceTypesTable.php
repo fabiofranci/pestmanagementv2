@@ -14,20 +14,22 @@ class ServiceTypesTable
     {
         return $table
             ->columns([
-                TextColumn::make('tenant_id')
-                    ->numeric()
-                    ->sortable(),
                 TextColumn::make('name')
+                    ->label('Nome')
                     ->searchable(),
                 TextColumn::make('code')
+                    ->label('Codice')
                     ->searchable(),
                 TextColumn::make('status')
+                    ->label('Stato')
                     ->searchable(),
                 TextColumn::make('created_at')
+                    ->label('Creato il')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('updated_at')
+                    ->label('Aggiornato il')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),

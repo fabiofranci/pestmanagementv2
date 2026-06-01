@@ -13,8 +13,23 @@ class Tenant extends Model
         'name',
         'slug',
         'domain',
+        'db_host',
+        'db_port',
+        'db_database',
+        'db_username',
+        'db_password',
+        'panel_palette',
+        'panel_theme_mode',
+        'panel_font_family',
         'status',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'db_password' => 'encrypted',
+        ];
+    }
 
     public function customers()
     {

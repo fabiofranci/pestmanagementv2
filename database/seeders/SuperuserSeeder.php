@@ -21,6 +21,7 @@ class SuperuserSeeder extends Seeder
             [
                 'name' => 'Super Tenant',
                 'domain' => 'localhost',
+                'db_database' => 'tenant_super_tenant',
                 'status' => 'active',
             ]
         );
@@ -38,6 +39,7 @@ class SuperuserSeeder extends Seeder
             [
                 'name' => 'Super User',
                 'password' => Hash::make('password'),
+                'is_superuser' => true,
                 'tenant_id' => $tenant->id,
             ]
         );

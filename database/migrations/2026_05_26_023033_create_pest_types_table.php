@@ -8,6 +8,8 @@ return new class extends Migration
 {
     public function up(): void
     {
+        return;
+
         Schema::create('pest_types', function (Blueprint $table) {
             $table->id();
             $table->foreignId('tenant_id')->constrained()->cascadeOnDelete();
@@ -21,6 +23,8 @@ return new class extends Migration
 
     public function down(): void
     {
+        return;
+
         Schema::dropIfExists('pest_types');
     }
 };

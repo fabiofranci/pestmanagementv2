@@ -12,26 +12,34 @@ class CustomerForm
     {
         return $schema
             ->components([
-                TextInput::make('tenant_id')
-                    ->required()
-                    ->numeric(),
                 TextInput::make('name')
+                    ->label('Nome')
                     ->required(),
-                TextInput::make('legal_name'),
-                TextInput::make('tax_id'),
+                TextInput::make('legal_name')
+                    ->label('Ragione sociale'),
+                TextInput::make('tax_id')
+                    ->label('Partita IVA / Codice fiscale'),
                 TextInput::make('email')
-                    ->label('Email address')
+                    ->label('Email')
                     ->email(),
                 TextInput::make('phone')
+                    ->label('Telefono')
                     ->tel(),
-                TextInput::make('address'),
-                TextInput::make('city'),
-                TextInput::make('postcode'),
-                TextInput::make('province'),
-                TextInput::make('country'),
+                TextInput::make('address')
+                    ->label('Indirizzo'),
+                TextInput::make('city')
+                    ->label('Città'),
+                TextInput::make('postcode')
+                    ->label('CAP'),
+                TextInput::make('province')
+                    ->label('Provincia'),
+                TextInput::make('country')
+                    ->label('Paese'),
                 Textarea::make('notes')
+                    ->label('Note')
                     ->columnSpanFull(),
                 TextInput::make('status')
+                    ->label('Stato')
                     ->required()
                     ->default('active'),
             ]);

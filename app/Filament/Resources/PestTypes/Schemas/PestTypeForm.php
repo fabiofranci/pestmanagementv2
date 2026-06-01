@@ -12,15 +12,16 @@ class PestTypeForm
     {
         return $schema
             ->components([
-                TextInput::make('tenant_id')
-                    ->required()
-                    ->numeric(),
                 TextInput::make('name')
+                    ->label('Nome')
                     ->required(),
-                TextInput::make('code'),
+                TextInput::make('code')
+                    ->label('Codice'),
                 Textarea::make('description')
+                    ->label('Descrizione')
                     ->columnSpanFull(),
                 TextInput::make('status')
+                    ->label('Stato')
                     ->required()
                     ->default('active'),
             ]);
