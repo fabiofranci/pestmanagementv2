@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Vite;
 use ReflectionProperty;
@@ -11,12 +12,18 @@ class AdminPanelThemeFallbackTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_admin_login_page_loads_when_theme_manifest_entry_is_missing(): void
+    public function test_admin_panel_loads_when_theme_manifest_entry_is_missing(): void
     {
         $manifestPath = public_path('build/manifest.json');
         $hotPath = public_path('hot');
         $originalManifest = file_get_contents($manifestPath);
         $originalHot = is_file($hotPath) ? file_get_contents($hotPath) : null;
+        $user = User::query()->create([
+            'name' => 'Super Admin',
+            'email' => 'super-admin@example.com',
+            'password' => 'password123',
+            'is_superuser' => true,
+        ]);
 
         if ($originalHot !== null) {
             unlink($hotPath);
@@ -38,7 +45,9 @@ class AdminPanelThemeFallbackTest extends TestCase
         $this->clearViteManifestCache();
 
         try {
-            $this->get('/admin/login')->assertOk();
+            $this->actingAs($user)
+                ->get('/admin')
+                ->assertOk();
         } finally {
             if ($originalManifest !== false) {
                 file_put_contents($manifestPath, $originalManifest);

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Tenants\Pages;
 
-use App\Filament\Actions\CreateTenantAdminAction;
+use App\Filament\Actions\TenantAdminActionGroup;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Filament\Resources\Tenants\TenantResource;
 use App\Models\Tenant;
@@ -43,7 +43,7 @@ class EditTenant extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            CreateTenantAdminAction::make(fn (?Tenant $record = null) => $this->getRecord()),
+            TenantAdminActionGroup::make(fn (?Tenant $record = null) => $this->getRecord()),
             Action::make('entraNelTenant')
                 ->label('Entra nel tenant')
                 ->action(function (Action $action): void {

@@ -11,6 +11,7 @@ use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Support\Icons\Heroicon;
 use Illuminate\Validation\Rule;
+use Throwable;
 
 class CreateTenantAdminAction
 {
@@ -20,6 +21,12 @@ class CreateTenantAdminAction
             ->label('Crea admin tenant')
             ->icon(Heroicon::OutlinedUserPlus)
             ->color('primary')
+            ->hidden(function (?Tenant $record = null) use ($resolveTenant): bool {
+                $tenant = $resolveTenant($record);
+
+                return $tenant instanceof Tenant
+                    && app(TenantAdminManager::class)->getAdmin($tenant) !== null;
+            })
             ->schema([
                 TextInput::make('name')
                     ->label('Nome')
@@ -52,12 +59,24 @@ class CreateTenantAdminAction
             ->modalHeading('Crea accesso admin tenant')
             ->modalDescription('Il login resta centralizzato. Questo utente verra collegato al tenant e non avra privilegi da superadmin.')
             ->modalSubmitActionLabel('Crea accesso')
-            ->action(function (array $data, ?Tenant $record = null) use ($resolveTenant): void {
+            ->action(function (array $data, Action $action, ?Tenant $record = null) use ($resolveTenant): void {
                 $tenant = $resolveTenant($record);
 
                 abort_unless($tenant instanceof Tenant, 404);
 
-                $user = app(TenantAdminManager::class)->createAdmin($tenant, $data);
+                try {
+                    $user = app(TenantAdminManager::class)->createAdmin($tenant, $data);
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->danger()
+                        ->title('Creazione admin fallita')
+                        ->body($exception->getMessage())
+                        ->send();
+
+                    $action->halt();
+
+                    return;
+                }
 
                 Notification::make()
                     ->success()

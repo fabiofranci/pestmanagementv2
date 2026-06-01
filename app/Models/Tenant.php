@@ -65,4 +65,11 @@ class Tenant extends Model
     {
         return $this->hasMany(User::class);
     }
+
+    public function tenantAdmin()
+    {
+        return $this->hasOne(User::class)
+            ->where('is_superuser', false)
+            ->oldestOfMany();
+    }
 }

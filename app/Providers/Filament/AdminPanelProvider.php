@@ -3,14 +3,15 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Resources\Tenants\TenantResource;
+use App\Http\Controllers\Auth\TenantLoginController;
+use App\Http\Middleware\AuthenticatePanel;
+use App\Http\Middleware\AuthenticatePanelSession;
 use App\Http\Middleware\BootstrapTenantContext;
 use App\Models\User;
 use App\Support\Filament\PanelAppearance;
 use App\Support\Tenancy\CurrentTenant;
 use Filament\Actions\Action;
 use Filament\FontProviders\GoogleFontProvider;
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages\Dashboard;
@@ -27,6 +28,7 @@ use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Vite;
+use Illuminate\Foundation\ViteException;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
@@ -45,7 +47,7 @@ class AdminPanelProvider extends PanelProvider
                 fn (): string => app(PanelAppearance::class)->resolve()['font_family'],
                 provider: GoogleFontProvider::class,
             )
-            ->login()
+            ->login([TenantLoginController::class, 'redirectFromPanel'])
             ->colors([
                 'primary' => Color::Green,
             ])
@@ -94,7 +96,7 @@ class AdminPanelProvider extends PanelProvider
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
-                AuthenticateSession::class,
+                AuthenticatePanelSession::class,
                 ShareErrorsFromSession::class,
                 BootstrapTenantContext::class,
                 PreventRequestForgery::class,
@@ -103,7 +105,7 @@ class AdminPanelProvider extends PanelProvider
                 DispatchServingFilamentEvent::class,
             ])
             ->authMiddleware([
-                Authenticate::class,
+                AuthenticatePanel::class,
             ]);
 
         return $panel;
@@ -112,9 +114,17 @@ class AdminPanelProvider extends PanelProvider
     protected function adminTheme(): Theme
     {
         return Theme::make('admin-theme')
-            ->html(fn (): Htmlable => $this->hasAdminThemeAsset()
-                ? app(Vite::class)('resources/css/filament/admin/theme.css')
-                : FilamentAsset::getTheme('app')->getHtml());
+            ->html(function (): Htmlable {
+                if (! $this->hasAdminThemeAsset()) {
+                    return FilamentAsset::getTheme('app')->getHtml();
+                }
+
+                try {
+                    return app(Vite::class)('resources/css/filament/admin/theme.css');
+                } catch (ViteException) {
+                    return FilamentAsset::getTheme('app')->getHtml();
+                }
+            });
     }
 
     protected function hasAdminThemeAsset(): bool

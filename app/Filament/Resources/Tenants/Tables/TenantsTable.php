@@ -2,7 +2,7 @@
 
 namespace App\Filament\Resources\Tenants\Tables;
 
-use App\Filament\Actions\CreateTenantAdminAction;
+use App\Filament\Actions\TenantAdminActionGroup;
 use App\Filament\Resources\Customers\CustomerResource;
 use App\Models\Tenant;
 use App\Support\Filament\PanelAppearance;
@@ -15,6 +15,7 @@ use Filament\Actions\EditAction;
 use Filament\Notifications\Notification;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Throwable;
 
@@ -36,6 +37,17 @@ class TenantsTable
                 TextColumn::make('db_database')
                     ->label('Database tenant')
                     ->searchable(),
+                TextColumn::make('tenantAdmin.name')
+                    ->label('Admin tenant')
+                    ->formatStateUsing(fn (?string $state): string => $state ?: 'Nessun utente collegato')
+                    ->description(fn (Tenant $record): string => $record->tenantAdmin?->email ?: 'Crea l accesso admin per questo tenant.')
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->whereHas('tenantAdmin', function (Builder $query) use ($search): void {
+                            $query
+                                ->where('name', 'like', "%{$search}%")
+                                ->orWhere('email', 'like', "%{$search}%");
+                        });
+                    }),
                 TextColumn::make('panel_palette')
                     ->label('Palette')
                     ->formatStateUsing(fn (?string $state): string => app(PanelAppearance::class)->paletteLabel($state))
@@ -66,7 +78,7 @@ class TenantsTable
                 //
             ])
             ->recordActions([
-                CreateTenantAdminAction::make(fn (?Tenant $record) => $record),
+                TenantAdminActionGroup::make(fn (?Tenant $record) => $record),
                 Action::make('entraNelTenant')
                     ->label('Entra nel tenant')
                     ->action(function (Tenant $record, Action $action): void {
