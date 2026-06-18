@@ -65,7 +65,7 @@ class CustomerPortalUserManager
     {
         $this->guardUserBelongsToCustomer($customer, $user);
 
-        DB::transaction(function () use ($customer, $user): void {
+        DB::transaction(function () use ($user): void {
             $user->delete();
         });
     }

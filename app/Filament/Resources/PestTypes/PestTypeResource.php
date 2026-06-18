@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\PestTypes;
 
-use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\PestTypes\Pages\CreatePestType;
 use App\Filament\Resources\PestTypes\Pages\EditPestType;
 use App\Filament\Resources\PestTypes\Pages\ListPestTypes;
 use App\Filament\Resources\PestTypes\Schemas\PestTypeForm;
 use App\Filament\Resources\PestTypes\Tables\PestTypesTable;
+use App\Filament\Resources\TenantScopedResource;
 use App\Models\PestType;
 use BackedEnum;
 use Filament\Schemas\Schema;

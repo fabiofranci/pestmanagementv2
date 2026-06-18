@@ -18,14 +18,14 @@ use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Assets\Theme;
-use Filament\Support\Facades\FilamentAsset;
 use Filament\Support\Colors\Color;
+use Filament\Support\Facades\FilamentAsset;
 use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
+use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Foundation\Http\Middleware\PreventRequestForgery;
 use Illuminate\Foundation\Vite;
 use Illuminate\Foundation\ViteException;
@@ -65,7 +65,7 @@ class AdminPanelProvider extends PanelProvider
             )
             ->userMenuItems([
                 Action::make('tenantStatus')
-                    ->label(fn (): string => 'Tenant attivo: ' . (app(CurrentTenant::class)->get()?->name ?? 'nessuno'))
+                    ->label(fn (): string => 'Tenant attivo: '.(app(CurrentTenant::class)->get()?->name ?? 'nessuno'))
                     ->disabled()
                     ->visible(fn (): bool => auth()->user() instanceof User && auth()->user()->isSuperuser())
                     ->sort(10),

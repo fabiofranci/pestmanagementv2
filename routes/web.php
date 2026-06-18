@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\Controllers\Admin\LeaveTenantController;
 use App\Http\Controllers\Auth\CustomerPortalLoginController;
 use App\Http\Controllers\Auth\TenantLoginController;
-use App\Http\Controllers\Admin\LeaveTenantController;
 use Illuminate\Support\Facades\Route;
 
 Route::redirect('/', '/login');

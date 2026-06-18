@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\ServiceTypes;
 
-use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\ServiceTypes\Pages\CreateServiceType;
 use App\Filament\Resources\ServiceTypes\Pages\EditServiceType;
 use App\Filament\Resources\ServiceTypes\Pages\ListServiceTypes;
 use App\Filament\Resources\ServiceTypes\Schemas\ServiceTypeForm;
 use App\Filament\Resources\ServiceTypes\Tables\ServiceTypesTable;
+use App\Filament\Resources\TenantScopedResource;
 use App\Models\ServiceType;
 use BackedEnum;
 use Filament\Schemas\Schema;

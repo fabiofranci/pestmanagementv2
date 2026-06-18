@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\Customers;
 
 use App\Filament\Actions\CustomerPortalUserActionGroup;
-use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
+use App\Filament\Resources\TenantScopedResource;
 use App\Models\Customer;
 use App\Models\User;
 use BackedEnum;

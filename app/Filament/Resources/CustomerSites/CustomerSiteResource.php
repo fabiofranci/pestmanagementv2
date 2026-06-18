@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\CustomerSites;
 
-use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\CustomerSites\Pages\CreateCustomerSite;
 use App\Filament\Resources\CustomerSites\Pages\EditCustomerSite;
 use App\Filament\Resources\CustomerSites\Pages\ListCustomerSites;
 use App\Filament\Resources\CustomerSites\Schemas\CustomerSiteForm;
 use App\Filament\Resources\CustomerSites\Tables\CustomerSitesTable;
+use App\Filament\Resources\TenantScopedResource;
 use App\Models\CustomerSite;
 use BackedEnum;
 use Filament\Schemas\Schema;

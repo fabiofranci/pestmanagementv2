@@ -2,12 +2,12 @@
 
 namespace App\Filament\Resources\MonitoringPoints;
 
-use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\MonitoringPoints\Pages\CreateMonitoringPoint;
 use App\Filament\Resources\MonitoringPoints\Pages\EditMonitoringPoint;
 use App\Filament\Resources\MonitoringPoints\Pages\ListMonitoringPoints;
 use App\Filament\Resources\MonitoringPoints\Schemas\MonitoringPointForm;
 use App\Filament\Resources\MonitoringPoints\Tables\MonitoringPointsTable;
+use App\Filament\Resources\TenantScopedResource;
 use App\Models\MonitoringPoint;
 use BackedEnum;
 use Filament\Schemas\Schema;

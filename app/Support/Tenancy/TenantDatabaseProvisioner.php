@@ -22,7 +22,7 @@ class TenantDatabaseProvisioner
             ->replaceMatches('/[^a-z0-9_]/', '')
             ->value();
 
-        return config('tenancy.database_prefix') . $sanitizedSlug;
+        return config('tenancy.database_prefix').$sanitizedSlug;
     }
 
     public function provision(Tenant $tenant): void
@@ -46,7 +46,7 @@ class TenantDatabaseProvisioner
 
     protected function createDatabase(Tenant $tenant): void
     {
-        $driver = config('database.connections.' . config('tenancy.admin_connection') . '.driver');
+        $driver = config('database.connections.'.config('tenancy.admin_connection').'.driver');
 
         if (! in_array($driver, ['mysql', 'mariadb'], true)) {
             throw new RuntimeException("Il provisioning automatico supporta solo MySQL/MariaDB. Driver attuale: {$driver}.");
