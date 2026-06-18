@@ -16,12 +16,12 @@ class ContractsTable
             ->columns([
                 TextColumn::make('customer_id')
                     ->label('Cliente')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->customer?->name)
+                    ->searchable(),
                 TextColumn::make('customer_site_id')
                     ->label('Sede cliente')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->site?->name)
+                    ->searchable(),
                 TextColumn::make('contract_number')
                     ->label('Numero contratto')
                     ->searchable(),

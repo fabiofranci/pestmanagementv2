@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Customers\Tables;
 
+use App\Filament\Resources\Customers\CustomerResource;
+use App\Support\Tenancy\CustomerPortalUserManager;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -26,6 +28,10 @@ class CustomersTable
                 TextColumn::make('email')
                     ->label('Email')
                     ->searchable(),
+                TextColumn::make('portal_access_email')
+                    ->label('Accesso area riservata')
+                    ->placeholder('Non configurato')
+                    ->state(fn ($record): ?string => app(CustomerPortalUserManager::class)->getUser($record)?->email),
                 TextColumn::make('phone')
                     ->label('Telefono')
                     ->searchable(),
@@ -63,6 +69,7 @@ class CustomersTable
             ])
             ->recordActions([
                 EditAction::make(),
+                CustomerResource::customerPortalUserActions(),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

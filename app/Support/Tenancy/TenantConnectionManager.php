@@ -32,14 +32,28 @@ class TenantConnectionManager
             throw new RuntimeException("Connessione tenant [{$connectionName}] non configurata.");
         }
 
-        Config::set("database.connections.{$connectionName}", [
+        $connectionConfig = [
             ...$baseConfig,
-            'host' => $tenant->db_host ?: $baseConfig['host'],
-            'port' => $tenant->db_port ?: $baseConfig['port'],
             'database' => $database,
-            'username' => $tenant->db_username ?: $baseConfig['username'],
-            'password' => $tenant->db_password ?: $baseConfig['password'],
-        ]);
+        ];
+
+        if (array_key_exists('host', $baseConfig)) {
+            $connectionConfig['host'] = $tenant->db_host ?: $baseConfig['host'];
+        }
+
+        if (array_key_exists('port', $baseConfig)) {
+            $connectionConfig['port'] = $tenant->db_port ?: $baseConfig['port'];
+        }
+
+        if (array_key_exists('username', $baseConfig)) {
+            $connectionConfig['username'] = $tenant->db_username ?: $baseConfig['username'];
+        }
+
+        if (array_key_exists('password', $baseConfig)) {
+            $connectionConfig['password'] = $tenant->db_password ?: $baseConfig['password'];
+        }
+
+        Config::set("database.connections.{$connectionName}", $connectionConfig);
 
         DB::reconnect($connectionName);
 

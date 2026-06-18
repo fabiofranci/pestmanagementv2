@@ -13,6 +13,7 @@ class EditCustomer extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            CustomerResource::customerPortalUserActions(),
             DeleteAction::make(),
         ];
     }

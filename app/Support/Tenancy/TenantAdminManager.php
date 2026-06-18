@@ -36,6 +36,7 @@ class TenantAdminManager
                 'email' => $data['email'],
                 'password' => $data['password'],
                 'tenant_id' => $tenant->getKey(),
+                'customer_id' => null,
                 'is_superuser' => false,
             ]);
 
@@ -56,6 +57,7 @@ class TenantAdminManager
                 'name' => $data['name'],
                 'email' => $data['email'],
                 'tenant_id' => $tenant->getKey(),
+                'customer_id' => null,
                 'is_superuser' => false,
             ];
 
@@ -99,7 +101,7 @@ class TenantAdminManager
 
     protected function guardAdminBelongsToTenant(Tenant $tenant, User $user): void
     {
-        if ($user->isSuperuser() || (int) $user->tenant_id !== (int) $tenant->getKey()) {
+        if ($user->isSuperuser() || $user->isTenantCustomer() || (int) $user->tenant_id !== (int) $tenant->getKey()) {
             throw new RuntimeException('L utente selezionato non appartiene a questo tenant.');
         }
     }

@@ -70,6 +70,7 @@ class Tenant extends Model
     {
         return $this->hasOne(User::class)
             ->where('is_superuser', false)
+            ->whereNull('customer_id')
             ->oldestOfMany();
     }
 }

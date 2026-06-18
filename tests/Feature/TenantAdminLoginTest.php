@@ -15,13 +15,13 @@ class TenantAdminLoginTest extends TestCase
     {
         $this->get('/login')
             ->assertOk()
-            ->assertSee('Entra in Pest Management V2')
-            ->assertSee('Accedi al portale');
+            ->assertSee('Entra nel gestionale')
+            ->assertSee('Accedi al gestionale');
 
         $this->get('/tenant/login')
             ->assertOk()
-            ->assertSee('Entra in Pest Management V2')
-            ->assertSee('Accedi al portale');
+            ->assertSee('Entra nel gestionale')
+            ->assertSee('Accedi al gestionale');
     }
 
     public function test_root_and_admin_login_redirect_to_the_general_login(): void
@@ -107,5 +107,36 @@ class TenantAdminLoginTest extends TestCase
         $this->actingAs($user)
             ->get('/tenant/login')
             ->assertRedirect('/admin');
+    }
+
+    public function test_customer_portal_user_is_rejected_from_the_admin_login(): void
+    {
+        $tenant = Tenant::query()->create([
+            'name' => 'Tenant Demo',
+            'slug' => 'tenant-demo',
+            'db_database' => 'tenant_demo',
+            'status' => 'active',
+        ]);
+
+        User::query()->create([
+            'name' => 'Cliente Portale',
+            'email' => 'cliente@example.com',
+            'password' => 'password123',
+            'tenant_id' => $tenant->getKey(),
+            'customer_id' => 15,
+            'is_superuser' => false,
+        ]);
+
+        $this->from('/login')
+            ->post(route('login.store'), [
+                'email' => 'cliente@example.com',
+                'password' => 'password123',
+            ])
+            ->assertRedirect('/login')
+            ->assertSessionHasErrors([
+                'email' => 'Questo accesso e riservato alla gestione interna. Usa l area riservata clienti.',
+            ]);
+
+        $this->assertGuest();
     }
 }

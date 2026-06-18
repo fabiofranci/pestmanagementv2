@@ -16,8 +16,8 @@ class CustomerSitesTable
             ->columns([
                 TextColumn::make('customer_id')
                     ->label('Cliente')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->customer?->name)
+                    ->searchable(),
                 TextColumn::make('name')
                     ->label('Nome')
                     ->searchable(),

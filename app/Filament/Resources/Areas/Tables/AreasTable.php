@@ -16,12 +16,12 @@ class AreasTable
             ->columns([
                 TextColumn::make('customer_site_id')
                     ->label('Sede cliente')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->site?->name)
+                    ->searchable(),
                 TextColumn::make('service_type_id')
                     ->label('Tipo di servizio')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->serviceType?->name)
+                    ->searchable(),
                 TextColumn::make('name')
                     ->label('Nome')
                     ->searchable(),

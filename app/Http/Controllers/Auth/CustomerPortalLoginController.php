@@ -10,20 +10,15 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
-class TenantLoginController extends Controller
+class CustomerPortalLoginController extends Controller
 {
-    public function create(Request $request): View|RedirectResponse
+    public function create(): View|RedirectResponse
     {
         if (Auth::check()) {
             return redirect()->to($this->panelUrl());
         }
 
-        return view('auth.tenant-login');
-    }
-
-    public function redirectFromPanel(): RedirectResponse
-    {
-        return redirect()->route('login');
+        return view('auth.customer-portal-login');
     }
 
     public function store(Request $request): RedirectResponse
@@ -48,17 +43,17 @@ class TenantLoginController extends Controller
         $user = $request->user();
         $panel = Filament::getPanel('admin');
 
-        if ($user?->isTenantCustomer()) {
+        if (! $user || ! $user->isTenantCustomer()) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
 
             throw ValidationException::withMessages([
-                'email' => 'Questo accesso e riservato alla gestione interna. Usa l area riservata clienti.',
+                'email' => 'Questo accesso e riservato ai clienti. Usa il login gestionale.',
             ]);
         }
 
-        if (! $user || ! $panel || ! $user->canAccessPanel($panel)) {
+        if (! $panel || ! $user->canAccessPanel($panel)) {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();

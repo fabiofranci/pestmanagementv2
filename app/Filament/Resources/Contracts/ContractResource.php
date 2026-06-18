@@ -18,6 +18,8 @@ class ContractResource extends TenantScopedResource
 {
     protected static ?string $model = Contract::class;
 
+    protected static bool $allowsCustomerUsers = true;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'contract_number';

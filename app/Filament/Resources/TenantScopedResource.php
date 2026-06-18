@@ -2,49 +2,122 @@
 
 namespace App\Filament\Resources;
 
+use App\Models\Area;
+use App\Models\Contract;
+use App\Models\Customer;
+use App\Models\CustomerSite;
+use App\Models\MonitoringPoint;
+use App\Models\User;
 use App\Support\Tenancy\CurrentTenant;
 use Filament\Resources\Resource;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 abstract class TenantScopedResource extends Resource
 {
+    protected static bool $allowsCustomerUsers = false;
+
     public static function shouldRegisterNavigation(): bool
     {
-        return parent::shouldRegisterNavigation() && app(CurrentTenant::class)->hasTenant();
+        return parent::shouldRegisterNavigation() && static::canAccess();
     }
 
     public static function canAccess(): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        if (! app(CurrentTenant::class)->hasTenant()) {
+            return false;
+        }
+
+        $user = static::currentUser();
+
+        if (! $user) {
+            return false;
+        }
+
+        if ($user->isTenantCustomer()) {
+            return static::$allowsCustomerUsers;
+        }
+
+        return true;
     }
 
     public static function canViewAny(): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        return static::canAccess();
     }
 
     public static function canCreate(): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        return static::canAccess() && ! static::isCustomerPortalUser();
     }
 
     public static function canEdit(Model $record): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        return static::canView($record) && ! static::isCustomerPortalUser();
     }
 
     public static function canDelete(Model $record): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        return static::canView($record) && ! static::isCustomerPortalUser();
     }
 
     public static function canDeleteAny(): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        return static::canAccess() && ! static::isCustomerPortalUser();
     }
 
     public static function canView(Model $record): bool
     {
-        return app(CurrentTenant::class)->hasTenant();
+        if (! static::canAccess()) {
+            return false;
+        }
+
+        if (! static::isCustomerPortalUser()) {
+            return true;
+        }
+
+        return static::scopeCustomerQuery(static::getModel()::query())
+            ->whereKey($record->getKey())
+            ->exists();
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return static::scopeCustomerQuery(parent::getEloquentQuery());
+    }
+
+    protected static function scopeCustomerQuery(Builder $query): Builder
+    {
+        $user = static::currentUser();
+
+        if (! $user?->isTenantCustomer()) {
+            return $query;
+        }
+
+        $customerId = $user->customer_id;
+
+        if (! $customerId) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return match (static::getModel()) {
+            Customer::class => $query->whereKey($customerId),
+            CustomerSite::class, Contract::class => $query->where('customer_id', $customerId),
+            Area::class => $query->whereHas('site', fn (Builder $siteQuery): Builder => $siteQuery->where('customer_id', $customerId)),
+            MonitoringPoint::class => $query->whereHas('area.site', fn (Builder $siteQuery): Builder => $siteQuery->where('customer_id', $customerId)),
+            default => $query->whereRaw('1 = 0'),
+        };
+    }
+
+    protected static function currentUser(): ?User
+    {
+        $user = auth()->user();
+
+        return $user instanceof User ? $user : null;
+    }
+
+    protected static function isCustomerPortalUser(): bool
+    {
+        return static::currentUser()?->isTenantCustomer() ?? false;
     }
 }

@@ -16,8 +16,8 @@ class MonitoringPointsTable
             ->columns([
                 TextColumn::make('area_id')
                     ->label('Area')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->area?->name)
+                    ->searchable(),
                 TextColumn::make('code')
                     ->label('Codice')
                     ->searchable(),
@@ -26,8 +26,8 @@ class MonitoringPointsTable
                     ->searchable(),
                 TextColumn::make('service_type_id')
                     ->label('Tipo di servizio')
-                    ->numeric()
-                    ->sortable(),
+                    ->state(fn ($record): ?string => $record->serviceType?->name)
+                    ->searchable(),
                 TextColumn::make('type')
                     ->label('Tipo')
                     ->searchable(),

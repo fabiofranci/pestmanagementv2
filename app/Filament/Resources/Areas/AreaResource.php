@@ -18,6 +18,8 @@ class AreaResource extends TenantScopedResource
 {
     protected static ?string $model = Area::class;
 
+    protected static bool $allowsCustomerUsers = true;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'name';

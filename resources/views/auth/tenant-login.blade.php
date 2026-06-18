@@ -3,7 +3,7 @@
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Accesso clienti | {{ config('app.name', 'Pest Management V2') }}</title>
+        <title>Accesso gestionale | {{ config('app.name', 'Pest Management V2') }}</title>
 
         @fonts
 
@@ -148,47 +148,54 @@
                     <div class="space-y-8">
                         <div class="inline-flex w-fit items-center gap-3 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium tracking-[0.18em] text-emerald-50 uppercase">
                             <span class="h-2.5 w-2.5 rounded-full bg-lime-300"></span>
-                            Accesso unico
+                            Accesso gestionale
                         </div>
 
                         <div class="max-w-2xl space-y-5">
                             <h1 class="text-4xl font-semibold tracking-[-0.05em] text-balance md:text-6xl">
-                                Un unico accesso per clienti e amministratori.
+                                Gestione tenant, sedi, monitoraggi e configurazioni.
                             </h1>
                             <p class="max-w-xl text-base leading-7 text-emerald-50/78 md:text-lg">
-                                Usa le credenziali della tua organizzazione o del tuo profilo amministrativo per entrare in Pest Management V2.
+                                Login dedicato a superadmin e amministratori tenant per operare sul gestionale Pest Management V2.
                             </p>
                         </div>
 
                         <div class="grid gap-4 md:grid-cols-3">
                             <article class="rounded-[1.5rem] border border-white/12 bg-white/8 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                                <p class="text-sm font-medium uppercase tracking-[0.16em] text-lime-200/90">Documenti</p>
-                                <p class="mt-3 text-sm leading-6 text-emerald-50/76">Controlla rapidamente contratti, schede e storico delle attività.</p>
+                                <p class="text-sm font-medium uppercase tracking-[0.16em] text-lime-200/90">Tenant</p>
+                                <p class="mt-3 text-sm leading-6 text-emerald-50/76">Gestisci organizzazioni, accessi e assetti operativi del tenant assegnato.</p>
                             </article>
                             <article class="rounded-[1.5rem] border border-white/12 bg-white/8 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                                <p class="text-sm font-medium uppercase tracking-[0.16em] text-lime-200/90">Monitoraggi</p>
-                                <p class="mt-3 text-sm leading-6 text-emerald-50/76">Consulta punti di monitoraggio, aree e cataloghi di servizio del tuo tenant.</p>
+                                <p class="text-sm font-medium uppercase tracking-[0.16em] text-lime-200/90">Operatività</p>
+                                <p class="mt-3 text-sm leading-6 text-emerald-50/76">Configura anagrafiche, contratti, aree e punti di monitoraggio in un unico pannello.</p>
                             </article>
                             <article class="rounded-[1.5rem] border border-white/12 bg-white/8 p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-                                <p class="text-sm font-medium uppercase tracking-[0.16em] text-lime-200/90">Accesso riservato</p>
-                                <p class="mt-3 text-sm leading-6 text-emerald-50/76">Le credenziali vengono gestite centralmente ma il tuo accesso resta limitato al tenant assegnato.</p>
+                                <p class="text-sm font-medium uppercase tracking-[0.16em] text-lime-200/90">Controllo accessi</p>
+                                <p class="mt-3 text-sm leading-6 text-emerald-50/76">Le credenziali restano centralizzate e l accesso e limitato al tenant o al contesto autorizzato.</p>
                             </article>
                         </div>
                     </div>
 
-                    <div class="mt-10 border-t border-white/10 pt-6 text-sm text-emerald-50/72">
-                        <p>Login principale di Pest Management V2 per clienti e amministratori autorizzati.</p>
+                    <div class="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-sm text-emerald-50/72 md:flex-row md:items-center md:justify-between">
+                        <p>Accesso dedicato alla gestione interna di Pest Management V2.</p>
+                        <a
+                            href="{{ route('customer.portal.login') }}"
+                            class="inline-flex items-center gap-2 font-medium text-lime-200 transition hover:text-lime-100"
+                        >
+                            Vai all area riservata clienti
+                            <span aria-hidden="true">→</span>
+                        </a>
                     </div>
                 </section>
 
                 <section class="tenant-login-panel flex w-full max-w-xl items-center rounded-[2rem] border border-emerald-950/10 bg-white/88 p-6 shadow-[0_42px_110px_-54px_rgba(10,34,27,0.65)] backdrop-blur md:p-8 lg:rounded-l-none lg:border-l-0 lg:p-10">
                     <div class="w-full space-y-8">
                         <div class="space-y-3">
-                            <p class="text-sm font-medium uppercase tracking-[0.18em] text-emerald-700">Login generale</p>
+                            <p class="text-sm font-medium uppercase tracking-[0.18em] text-emerald-700">Login gestionale</p>
                             <div class="space-y-2">
-                                <h2 class="text-3xl font-semibold tracking-[-0.04em] text-slate-950">Entra in Pest Management V2</h2>
+                                <h2 class="text-3xl font-semibold tracking-[-0.04em] text-slate-950">Entra nel gestionale</h2>
                                 <p class="text-sm leading-6 text-slate-600">
-                                    Dopo l'accesso vedrai solo le sezioni e i dati permessi al tuo account.
+                                    Usa credenziali amministrative. Dopo l accesso vedrai solo tenant, dati e azioni permessi al tuo profilo.
                                 </p>
                             </div>
                         </div>
@@ -245,13 +252,13 @@
                                 type="submit"
                                 class="tenant-login-submit inline-flex w-full items-center justify-center rounded-[1.15rem] bg-emerald-700 px-4 py-3.5 text-base font-semibold text-white transition hover:bg-emerald-800 focus:outline-none focus:ring-4 focus:ring-emerald-200"
                             >
-                                Accedi al portale
+                                Accedi al gestionale
                             </button>
                         </form>
 
                         <div class="rounded-[1.5rem] border border-amber-200 bg-amber-50 px-4 py-4 text-sm leading-6 text-amber-900">
-                            <p class="font-medium">Non trovi più le credenziali?</p>
-                            <p class="mt-1 text-amber-800/90">Contatta il tuo referente Pest Management V2 o il superadmin che gestisce la tua organizzazione.</p>
+                            <p class="font-medium">Cerchi l area riservata clienti?</p>
+                            <p class="mt-1 text-amber-800/90">Per consultare interventi, rapportini e documenti cliente usa la login dedicata dell area riservata.</p>
                         </div>
                     </div>
                 </section>

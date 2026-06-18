@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Customers;
 
+use App\Filament\Actions\CustomerPortalUserActionGroup;
 use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
@@ -9,7 +10,9 @@ use App\Filament\Resources\Customers\Pages\ListCustomers;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Models\Customer;
+use App\Models\User;
 use BackedEnum;
+use Filament\Actions\ActionGroup;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
@@ -17,6 +20,8 @@ use Filament\Tables\Table;
 class CustomerResource extends TenantScopedResource
 {
     protected static ?string $model = Customer::class;
+
+    protected static bool $allowsCustomerUsers = true;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
@@ -52,5 +57,23 @@ class CustomerResource extends TenantScopedResource
             'create' => CreateCustomer::route('/create'),
             'edit' => EditCustomer::route('/{record}/edit'),
         ];
+    }
+
+    public static function customerPortalUserActions(): ActionGroup
+    {
+        return CustomerPortalUserActionGroup::make(
+            fn (?Customer $record = null): ?Customer => $record,
+        );
+    }
+
+    public static function getNavigationLabel(): string
+    {
+        $user = auth()->user();
+
+        if ($user instanceof User && $user->isTenantCustomer()) {
+            return 'La tua azienda';
+        }
+
+        return static::$navigationLabel ?? 'Clienti';
     }
 }

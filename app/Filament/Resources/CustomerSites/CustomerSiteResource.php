@@ -18,6 +18,8 @@ class CustomerSiteResource extends TenantScopedResource
 {
     protected static ?string $model = CustomerSite::class;
 
+    protected static bool $allowsCustomerUsers = true;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'name';

@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,7 +14,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password', 'tenant_id', 'is_superuser'])]
+#[Fillable(['name', 'email', 'password', 'tenant_id', 'customer_id', 'is_superuser'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable implements FilamentUser
 {
@@ -36,9 +37,14 @@ class User extends Authenticatable implements FilamentUser
         ];
     }
 
-    public function tenant()
+    public function tenant(): BelongsTo
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class);
     }
 
     public function isSuperuser(): bool
@@ -46,9 +52,24 @@ class User extends Authenticatable implements FilamentUser
         return (bool) $this->is_superuser;
     }
 
+    public function isTenantAdmin(): bool
+    {
+        return ! $this->isSuperuser()
+            && filled($this->tenant_id)
+            && blank($this->customer_id);
+    }
+
+    public function isTenantCustomer(): bool
+    {
+        return ! $this->isSuperuser()
+            && filled($this->tenant_id)
+            && filled($this->customer_id);
+    }
+
     public function canAccessPanel(Panel $panel): bool
     {
         return $this->isSuperuser()
-            || $this->tenant()->exists();
+            || $this->isTenantAdmin()
+            || $this->isTenantCustomer();
     }
 }

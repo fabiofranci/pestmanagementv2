@@ -34,6 +34,7 @@ class TenantAdminManagerTest extends TestCase
         }
 
         $this->assertSame($tenant->getKey(), $user->tenant_id);
+        $this->assertNull($user->customer_id);
         $this->assertTrue($user->hasRole(TenantAdminManager::ROLE_NAME));
 
         $updatedUser = $manager->updateAdmin($tenant, $user, [
