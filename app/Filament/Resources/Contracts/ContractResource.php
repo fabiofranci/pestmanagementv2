@@ -2,12 +2,17 @@
 
 namespace App\Filament\Resources\Contracts;
 
-use App\Filament\Resources\TenantScopedResource;
 use App\Filament\Resources\Contracts\Pages\CreateContract;
 use App\Filament\Resources\Contracts\Pages\EditContract;
 use App\Filament\Resources\Contracts\Pages\ListContracts;
+use App\Filament\Resources\Contracts\RelationManagers\ContractBillingSchedulesRelationManager;
+use App\Filament\Resources\Contracts\RelationManagers\ContractEventsRelationManager;
+use App\Filament\Resources\Contracts\RelationManagers\ContractServicesRelationManager;
+use App\Filament\Resources\Contracts\RelationManagers\DocumentsRelationManager;
+use App\Filament\Resources\Contracts\RelationManagers\ScheduledInterventionsRelationManager;
 use App\Filament\Resources\Contracts\Schemas\ContractForm;
 use App\Filament\Resources\Contracts\Tables\ContractsTable;
+use App\Filament\Resources\TenantScopedResource;
 use App\Models\Contract;
 use BackedEnum;
 use Filament\Schemas\Schema;
@@ -43,7 +48,11 @@ class ContractResource extends TenantScopedResource
     public static function getRelations(): array
     {
         return [
-            //
+            ContractServicesRelationManager::class,
+            ScheduledInterventionsRelationManager::class,
+            ContractBillingSchedulesRelationManager::class,
+            DocumentsRelationManager::class,
+            ContractEventsRelationManager::class,
         ];
     }
 

@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Area extends Model
 {
@@ -43,5 +44,10 @@ class Area extends Model
     public function monitoringPoints()
     {
         return $this->hasMany(MonitoringPoint::class);
+    }
+
+    public function contractServices(): HasMany
+    {
+        return $this->hasMany(ContractService::class);
     }
 }
