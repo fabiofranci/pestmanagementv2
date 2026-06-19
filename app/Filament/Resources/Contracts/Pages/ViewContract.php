@@ -22,7 +22,6 @@ class ViewContract extends ViewRecord
             $this->addManualEventAction(),
             $this->closeContractAction(),
             $this->reactivateContractAction(),
-            $this->duplicateContractAction(),
         ];
     }
 
@@ -115,40 +114,6 @@ class ViewContract extends ViewRecord
                     ->success()
                     ->title('Contratto riattivato')
                     ->send();
-            });
-    }
-
-    protected function duplicateContractAction(): Action
-    {
-        return Action::make('duplicateContract')
-            ->label('Duplica contratto')
-            ->color('gray')
-            ->requiresConfirmation()
-            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
-            ->action(function (): void {
-                $record = $this->getRecord();
-
-                $copy = $record->replicate([
-                    'contract_number',
-                    'status',
-                ]);
-                $copy->contract_number = $record->contract_number.'-copy-'.now()->format('YmdHis');
-                $copy->status = 'draft';
-                $copy->save();
-
-                $copy->events()->create([
-                    'tenant_id' => $copy->tenant_id,
-                    'event_type' => 'duplicated',
-                    'title' => 'Contratto duplicato da '.$record->contract_number,
-                    'created_by_user_id' => auth()->id(),
-                ]);
-
-                Notification::make()
-                    ->success()
-                    ->title('Contratto duplicato')
-                    ->send();
-
-                $this->redirect(ContractResource::getUrl('edit', ['record' => $copy]));
             });
     }
 }

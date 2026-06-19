@@ -142,6 +142,13 @@ class ContractResource extends TenantScopedResource
                             }),
                     ])
                     ->columns(3),
+                Section::make('Note')
+                    ->schema([
+                        TextEntry::make('notes')
+                            ->label('Note')
+                            ->placeholder('-')
+                            ->columnSpanFull(),
+                    ]),
                 Section::make('Ultimi eventi')
                     ->schema([
                         TextEntry::make('latest_events')

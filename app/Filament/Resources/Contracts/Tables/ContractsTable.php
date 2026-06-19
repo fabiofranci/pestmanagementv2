@@ -75,6 +75,11 @@ class ContractsTable
                     ->label('Durata')
                     ->searchable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('notes')
+                    ->label('Note')
+                    ->limit(60)
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('currency')
                     ->label('Valuta')
                     ->searchable()

@@ -1,6 +1,6 @@
 # Contratti V2 - Filament
 
-Data aggiornamento: 2026-06-18
+Data aggiornamento: 2026-06-19
 
 Questo documento riepiloga il lavoro del branch `feature/contratti-v2-filament`. Il branch migliora l'esperienza Filament del modulo Contratti V2 senza introdurre nuove grandi entita di dominio.
 
@@ -28,6 +28,9 @@ Questo documento riepiloga il lavoro del branch `feature/contratti-v2-filament`.
   - Date e rinnovo;
   - Valori economici;
   - Note.
+- Creazione rapida da popup:
+  - nuovo cliente dalla select `Cliente`;
+  - nuova sede dalla select `Sede cliente`, vincolata al cliente selezionato.
 
 ### Vista riepilogativa contratto
 
@@ -46,10 +49,7 @@ Questo documento riepiloga il lavoro del branch `feature/contratti-v2-filament`.
 - Aggiunta azione per evento manuale.
 - Aggiunta azione per chiudere il contratto.
 - Aggiunta azione per riattivare un contratto chiuso.
-- Aggiunta duplicazione sicura della sola testata contratto:
-  - non duplica servizi, interventi, fatturazione o documenti;
-  - crea il nuovo contratto in stato `draft`;
-  - registra un evento di duplicazione.
+- Non sono state introdotte azioni automatiche di rinnovo, generazione interventi, generazione piano fatturazione o stampa.
 
 ### Relation Manager
 
@@ -84,7 +84,9 @@ Migliorati i Relation Manager gia presenti:
   - accesso a `ContractResource` da tenant admin;
   - rendering della pagina riepilogativa contratto;
   - rendering di dati collegati nella vista;
-  - tenant/customer scoping gia presente e invariato.
+  - azioni leggere su contratto: evento manuale, chiusura, riattivazione;
+  - tenant/customer scoping gia presente e invariato;
+  - blocco dell'accesso cliente a contratti di altri customer.
 
 ## Non implementato in questo branch
 

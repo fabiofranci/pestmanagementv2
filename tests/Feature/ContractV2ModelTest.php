@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Resources\Contracts\ContractResource;
 use App\Filament\Resources\Contracts\Pages\CreateContract;
+use App\Filament\Resources\Contracts\Pages\ViewContract;
 use App\Http\Middleware\BootstrapTenantContext;
 use App\Models\Contract;
 use App\Models\ContractBillingSchedule;
@@ -189,6 +190,36 @@ class ContractV2ModelTest extends TestCase
         $this->assertSame(['CTR-ALPHA'], $contracts);
     }
 
+    public function test_customer_user_cannot_open_contracts_from_other_customers(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractA, $contractB] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contractA] = $this->createContractFixture($tenant, 'CTR-OWN', 'Cliente Own');
+            [$contractB] = $this->createContractFixture($tenant, 'CTR-OTHER', 'Cliente Other');
+
+            return [$contractA, $contractB];
+        });
+
+        $user = User::query()->create([
+            'name' => 'Cliente Portale',
+            'email' => 'cliente-view@example.com',
+            'password' => 'password123',
+            'tenant_id' => $tenant->getKey(),
+            'customer_id' => $contractA->customer_id,
+            'is_superuser' => false,
+        ]);
+
+        $this->actingAs($user)
+            ->get(ContractResource::getUrl('view', ['record' => $contractA->getKey()]))
+            ->assertOk()
+            ->assertSee('CTR-OWN');
+
+        $this->actingAs($user)
+            ->get(ContractResource::getUrl('view', ['record' => $contractB->getKey()]))
+            ->assertNotFound();
+    }
+
     public function test_contract_resource_index_is_accessible_to_tenant_admin(): void
     {
         $tenant = $this->createTenant();
@@ -339,6 +370,61 @@ class ContractV2ModelTest extends TestCase
             ->assertSee('Scadenza vista')
             ->assertSee('Evento vista')
             ->assertSee('Servizi contrattuali');
+    }
+
+    public function test_contract_view_page_light_actions_update_contract_and_events(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contract] = $this->createContractFixture($tenant, 'CTR-ACTIONS', 'Cliente Actions');
+
+            return [$contract->getKey()];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(TenantConnectionManager::class)->activate($tenant);
+        app(CurrentTenant::class)->set($tenant);
+        Filament::setTenant($tenant, isQuiet: true);
+
+        try {
+            Livewire::test(ViewContract::class, ['record' => $contractId])
+                ->assertActionVisible('addManualEvent')
+                ->assertActionVisible('closeContract')
+                ->assertActionDoesNotExist('duplicateContract')
+                ->callAction('addManualEvent', [
+                    'event_type' => 'manual',
+                    'title' => 'Nota operativa test',
+                ])
+                ->callAction('closeContract');
+
+            $this->assertSame('closed', Contract::query()->findOrFail($contractId)->status);
+            $this->assertTrue(ContractEvent::query()
+                ->where('contract_id', $contractId)
+                ->where('event_type', 'manual')
+                ->where('title', 'Nota operativa test')
+                ->exists());
+            $this->assertTrue(ContractEvent::query()
+                ->where('contract_id', $contractId)
+                ->where('event_type', 'closed')
+                ->exists());
+
+            Livewire::test(ViewContract::class, ['record' => $contractId])
+                ->assertActionVisible('reactivateContract')
+                ->callAction('reactivateContract');
+
+            $this->assertSame('active', Contract::query()->findOrFail($contractId)->status);
+            $this->assertTrue(ContractEvent::query()
+                ->where('contract_id', $contractId)
+                ->where('event_type', 'reactivated')
+                ->exists());
+        } finally {
+            app(CurrentTenant::class)->set(null);
+            Filament::setTenant(null, isQuiet: true);
+            DB::purge(config('tenancy.database_connection'));
+        }
     }
 
     protected function createTenant(): Tenant

@@ -12,7 +12,7 @@ Nota di correzione: la parte relativa all'invio fattura non viene considerata re
 
 ## 1. Scheda Preventivo / Contratto come centro operativo
 
-![Scheda contratto](assets/01_scheda_contratto.jpg)
+![Scheda contratto](assets/video-cliente/01_scheda_contratto.jpg)
 
 ### Cosa si vede
 
@@ -67,7 +67,7 @@ Parzialmente avviato:
 
 ## 2. Elenco contratti con stato, cliente, servizio e scadenze
 
-![Lista contratti](assets/02_lista_contratti.jpg)
+![Lista contratti](assets/video-cliente/02_lista_contratti.jpg)
 
 ### Cosa si vede
 
@@ -121,14 +121,19 @@ Filtri consigliati:
 
 ### Stato attuale
 
-Da verificare/migliorare nel branch UI Filament.
+Migliorato nel branch UI Filament:
+
+- tabella contratti con numero, cliente, sede, stato, date, valore, rinnovo e condizioni pagamento;
+- stato visualizzato con badge;
+- filtri per stato, cliente e scadenza;
+- nota contratto disponibile come colonna opzionale;
+- vista riepilogativa contratto con servizi, prossimo intervento, prossima scadenza fatturazione e ultimi eventi.
 
 ### Gap ancora aperto
 
-- filtri operativi;
-- badge stato;
-- ordinamenti utili;
-- viste salvate o tab tipo “In corso”, “In scadenza”, “Scaduti”.
+- viste salvate o tab tipo “In corso”, “In scadenza”, “Scaduti”;
+- filtro per servizio;
+- colonne/filtri aggiuntivi per prossima fatturazione e prossimo intervento direttamente in lista.
 
 ---
 
@@ -168,14 +173,14 @@ Significato:
 
 | Evidenza dal video | Richiesta funzionale | Entità V2 | Stato | Priorità |
 |---|---|---|---|---|
-| Scheda contratto completa | Il contratto deve essere il centro operativo | `contracts` + relation manager | avviato | alta |
-| Servizi dentro il contratto | Gestire prestazioni incluse, frequenze e importi | `contract_services` | modello fatto, UI da rifinire | alta |
-| Interventi programmati | Vedere il calendario/previsione degli interventi | `scheduled_interventions` | modello fatto, logica da sviluppare | alta |
-| Scadenze economiche del contratto | Gestire piano di fatturazione previsto, non fattura fiscale | `contract_billing_schedules` | modello fatto, UI da rifinire | media |
+| Scheda contratto completa | Il contratto deve essere il centro operativo | `contracts` + relation manager | UI Filament migliorata | alta |
+| Servizi dentro il contratto | Gestire prestazioni incluse, frequenze e importi | `contract_services` | modello fatto, UI migliorata | alta |
+| Interventi programmati | Vedere il calendario/previsione degli interventi | `scheduled_interventions` | modello fatto, UI migliorata | alta |
+| Scadenze economiche del contratto | Gestire piano di fatturazione previsto, non fattura fiscale | `contract_billing_schedules` | modello fatto, UI migliorata | media |
 | Pulsanti stampa/email/schede | Generare documenti e allegati | `documents` + PDF futuri | base fatta, stampe da fare | media |
 | Rinnovo contratto | Duplicare/rinnovare contratti mantenendo dati utili | azione futura su `contracts` | non fatto | media |
 | Rapportini/schede | Collegare contratto a lavoro eseguito | `work_orders`, `visits`, `inspections` | da fare dopo | alta, ma branch successivo |
-| Schermata desktop densa | Avere tutto sott'occhio | vista riepilogativa Filament | da fare | alta |
+| Schermata desktop densa | Avere tutto sott'occhio | vista riepilogativa Filament | prima versione fatta | alta |
 | Invio fattura mostrato nel video | Fuori perimetro: riguarda fattura di Fabio verso il cliente | nessuna entità V2 | escluso | nessuna |
 
 ---
