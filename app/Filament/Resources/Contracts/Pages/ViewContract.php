@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Contracts\Pages;
 
 use App\Filament\Resources\Contracts\ContractResource;
+use App\Support\Contracts\ContractProgrammingService;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
@@ -20,6 +21,8 @@ class ViewContract extends ViewRecord
         return [
             EditAction::make(),
             $this->addManualEventAction(),
+            $this->generateScheduledInterventionsAction(),
+            $this->generateBillingScheduleAction(),
             $this->closeContractAction(),
             $this->reactivateContractAction(),
         ];
@@ -62,6 +65,65 @@ class ViewContract extends ViewRecord
                     ->success()
                     ->title('Evento aggiunto')
                     ->send();
+            });
+    }
+
+    protected function generateScheduledInterventionsAction(): Action
+    {
+        return Action::make('generateScheduledInterventions')
+            ->label('Genera interventi programmati')
+            ->color('info')
+            ->requiresConfirmation()
+            ->modalHeading('Genera interventi programmati')
+            ->modalDescription('Crea solo interventi programmati dal contratto. Non crea work order, visite o ispezioni.')
+            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
+            ->action(function (): void {
+                $result = app(ContractProgrammingService::class)
+                    ->generateScheduledInterventions($this->getRecord(), auth()->id());
+
+                $this->record = $this->getRecord()->refresh();
+
+                $notification = Notification::make()
+                    ->title('Generazione interventi completata')
+                    ->body("Interventi creati: {$result['created']}. Record saltati: {$result['skipped']}.");
+
+                ($result['created'] > 0 ? $notification->success() : $notification->warning())->send();
+            });
+    }
+
+    protected function generateBillingScheduleAction(): Action
+    {
+        return Action::make('generateBillingSchedule')
+            ->label('Genera piano fatturazione')
+            ->color('info')
+            ->requiresConfirmation()
+            ->modalHeading('Genera piano fatturazione')
+            ->modalDescription('Crea solo scadenze previste del contratto. Non crea fatture fiscali o invii elettronici.')
+            ->schema([
+                Select::make('frequency')
+                    ->label('Modalita')
+                    ->options([
+                        'one_time' => 'Unica soluzione',
+                        'monthly' => 'Mensile',
+                        'quarterly' => 'Trimestrale',
+                        'yearly' => 'Annuale',
+                    ])
+                    ->default('one_time')
+                    ->native(false)
+                    ->required(),
+            ])
+            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
+            ->action(function (array $data): void {
+                $result = app(ContractProgrammingService::class)
+                    ->generateBillingSchedule($this->getRecord(), $data['frequency'], auth()->id());
+
+                $this->record = $this->getRecord()->refresh();
+
+                $notification = Notification::make()
+                    ->title('Generazione piano fatturazione completata')
+                    ->body("Scadenze create: {$result['created']}. Record saltati: {$result['skipped']}.");
+
+                ($result['created'] > 0 ? $notification->success() : $notification->warning())->send();
             });
     }
 

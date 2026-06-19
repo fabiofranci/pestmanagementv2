@@ -59,7 +59,7 @@ Parzialmente avviato:
 ### Gap ancora aperto
 
 - vista riepilogativa contratto più leggibile;
-- azioni operative: rinnovo, stampa, generazione interventi, generazione piano fatturazione;
+- azioni operative avanzate: rinnovo, stampa, rigenerazioni guidate e workflow successivi;
 - PDF e documenti reali;
 - collegamento successivo con work order, visite e ispezioni.
 
@@ -175,8 +175,8 @@ Significato:
 |---|---|---|---|---|
 | Scheda contratto completa | Il contratto deve essere il centro operativo | `contracts` + relation manager | UI Filament migliorata | alta |
 | Servizi dentro il contratto | Gestire prestazioni incluse, frequenze e importi | `contract_services` | modello fatto, UI migliorata | alta |
-| Interventi programmati | Vedere il calendario/previsione degli interventi | `scheduled_interventions` | modello fatto, UI migliorata | alta |
-| Scadenze economiche del contratto | Gestire piano di fatturazione previsto, non fattura fiscale | `contract_billing_schedules` | modello fatto, UI migliorata | media |
+| Interventi programmati | Vedere il calendario/previsione degli interventi | `scheduled_interventions` | generazione base fatta | alta |
+| Scadenze economiche del contratto | Gestire piano di fatturazione previsto, non fattura fiscale | `contract_billing_schedules` | generazione base fatta | media |
 | Pulsanti stampa/email/schede | Generare documenti e allegati | `documents` + PDF futuri | base fatta, stampe da fare | media |
 | Rinnovo contratto | Duplicare/rinnovare contratti mantenendo dati utili | azione futura su `contracts` | non fatto | media |
 | Rapportini/schede | Collegare contratto a lavoro eseguito | `work_orders`, `visits`, `inspections` | da fare dopo | alta, ma branch successivo |

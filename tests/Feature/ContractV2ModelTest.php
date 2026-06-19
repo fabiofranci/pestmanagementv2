@@ -17,6 +17,7 @@ use App\Models\ScheduledIntervention;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Contracts\ContractProgrammingService;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantConnectionManager;
 use Filament\Facades\Filament;
@@ -392,6 +393,8 @@ class ContractV2ModelTest extends TestCase
         try {
             Livewire::test(ViewContract::class, ['record' => $contractId])
                 ->assertActionVisible('addManualEvent')
+                ->assertActionVisible('generateScheduledInterventions')
+                ->assertActionVisible('generateBillingSchedule')
                 ->assertActionVisible('closeContract')
                 ->assertActionDoesNotExist('duplicateContract')
                 ->callAction('addManualEvent', [
@@ -425,6 +428,133 @@ class ContractV2ModelTest extends TestCase
             Filament::setTenant(null, isQuiet: true);
             DB::purge(config('tenancy.database_connection'));
         }
+    }
+
+    public function test_contract_programming_generates_scheduled_interventions_and_is_idempotent(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-SCHEDULE', 'Cliente Schedule');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-03-31',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio mensile',
+                'frequency' => 'monthly',
+                'status' => 'active',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio non supportato',
+                'frequency' => 'weekly',
+                'status' => 'active',
+            ]);
+
+            $result = app(ContractProgrammingService::class)
+                ->generateScheduledInterventions($contract->refresh());
+
+            $this->assertSame(3, $result['created']);
+            $this->assertSame(1, $result['skipped']);
+            $this->assertSame([
+                '2026-01-01',
+                '2026-02-01',
+                '2026-03-01',
+            ], ScheduledIntervention::query()
+                ->orderBy('planned_date')
+                ->get()
+                ->map(fn (ScheduledIntervention $intervention): string => $intervention->planned_date->toDateString())
+                ->all());
+            $this->assertTrue(ScheduledIntervention::query()
+                ->where('tenant_id', $tenant->getKey())
+                ->where('contract_id', $contract->getKey())
+                ->count() === 3);
+
+            $secondResult = app(ContractProgrammingService::class)
+                ->generateScheduledInterventions($contract->refresh());
+
+            $this->assertSame(0, $secondResult['created']);
+            $this->assertSame(3, ScheduledIntervention::query()->count());
+            $this->assertSame(2, ContractEvent::query()
+                ->where('contract_id', $contract->getKey())
+                ->where('event_type', 'scheduled_interventions_generated')
+                ->count());
+
+            $event = ContractEvent::query()
+                ->where('contract_id', $contract->getKey())
+                ->where('event_type', 'scheduled_interventions_generated')
+                ->oldest()
+                ->firstOrFail();
+
+            $this->assertSame(3, $event->payload['created']);
+            $this->assertSame(1, $event->payload['skipped']);
+        });
+    }
+
+    public function test_contract_programming_generates_billing_schedule_and_is_idempotent(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract] = $this->createContractFixture($tenant, 'CTR-BILLING', 'Cliente Billing');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-03-31',
+                'total_value' => 1200,
+                'currency' => 'EUR',
+            ]);
+
+            $result = app(ContractProgrammingService::class)
+                ->generateBillingSchedule($contract->refresh(), 'monthly');
+
+            $this->assertSame(3, $result['created']);
+            $this->assertSame(0, $result['skipped']);
+
+            $schedules = ContractBillingSchedule::query()
+                ->orderBy('due_date')
+                ->get();
+
+            $this->assertSame([
+                '2026-01-01',
+                '2026-02-01',
+                '2026-03-01',
+            ], $schedules
+                ->map(fn (ContractBillingSchedule $schedule): string => $schedule->due_date->toDateString())
+                ->all());
+            $this->assertSame(['400.00', '400.00', '400.00'], $schedules->pluck('amount')->all());
+            $this->assertTrue($schedules->every(fn (ContractBillingSchedule $schedule): bool => (int) $schedule->tenant_id === (int) $tenant->getKey()));
+
+            $secondResult = app(ContractProgrammingService::class)
+                ->generateBillingSchedule($contract->refresh(), 'monthly');
+
+            $this->assertSame(0, $secondResult['created']);
+            $this->assertSame(3, ContractBillingSchedule::query()->count());
+            $this->assertSame(2, ContractEvent::query()
+                ->where('contract_id', $contract->getKey())
+                ->where('event_type', 'billing_schedule_generated')
+                ->count());
+
+            $event = ContractEvent::query()
+                ->where('contract_id', $contract->getKey())
+                ->where('event_type', 'billing_schedule_generated')
+                ->oldest()
+                ->firstOrFail();
+
+            $this->assertSame(3, $event->payload['created']);
+            $this->assertSame('monthly', $event->payload['parameters']['frequency']);
+        });
     }
 
     protected function createTenant(): Tenant

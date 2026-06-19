@@ -70,8 +70,16 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Descrizione')
                     ->required()
                     ->columnSpanFull(),
-                TextInput::make('frequency')
-                    ->label('Frequenza'),
+                Select::make('frequency')
+                    ->label('Frequenza')
+                    ->options([
+                        'monthly' => 'Mensile',
+                        'quarterly' => 'Trimestrale',
+                        'yearly' => 'Annuale',
+                        'one_time' => 'Una tantum',
+                    ])
+                    ->native(false)
+                    ->helperText('Usata per generare gli interventi programmati dal contratto.'),
                 TextInput::make('quantity')
                     ->label('Quantita')
                     ->numeric(),
@@ -124,6 +132,13 @@ class ContractServicesRelationManager extends RelationManager
                     ->searchable(),
                 TextColumn::make('frequency')
                     ->label('Frequenza')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'monthly' => 'Mensile',
+                        'quarterly' => 'Trimestrale',
+                        'yearly' => 'Annuale',
+                        'one_time' => 'Una tantum',
+                        default => $state ?: '-',
+                    })
                     ->placeholder('-'),
                 TextColumn::make('total_price')
                     ->label('Totale')
