@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Tenant;
 use App\Support\Tenancy\TenantAdminManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use RuntimeException;
 use Tests\TestCase;
@@ -46,6 +47,18 @@ class TenantAdminManagerTest extends TestCase
         $this->assertSame('Luigi Bianchi', $updatedUser->name);
         $this->assertSame('luigi@example.com', $updatedUser->email);
         $this->assertTrue(Hash::check('password456', $updatedUser->password));
+
+        $updatedAgainUser = $manager->updateAdmin($tenant, $updatedUser, [
+            'name' => 'Luigi Verdi',
+            'email' => 'luigi.verdi@example.com',
+        ]);
+
+        $this->assertSame('Luigi Verdi', $updatedAgainUser->name);
+        $this->assertSame(1, DB::table(config('permission.table_names.model_has_roles'))
+            ->where(config('permission.column_names.model_morph_key'), $updatedAgainUser->getKey())
+            ->where('model_type', $updatedAgainUser->getMorphClass())
+            ->where(config('permission.column_names.team_foreign_key'), $tenant->getKey())
+            ->count());
 
         $manager->deleteAdmin($tenant, $updatedUser);
 

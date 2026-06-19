@@ -12,11 +12,11 @@ use Filament\Actions\EditAction;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
-use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\TimePicker;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class ScheduledInterventionsRelationManager extends RelationManager
@@ -63,9 +63,16 @@ class ScheduledInterventionsRelationManager extends RelationManager
                 TimePicker::make('planned_time')
                     ->label('Ora prevista')
                     ->seconds(false),
-                TextInput::make('status')
+                Select::make('status')
                     ->label('Stato')
+                    ->options([
+                        'planned' => 'Pianificato',
+                        'confirmed' => 'Confermato',
+                        'completed' => 'Completato',
+                        'cancelled' => 'Annullato',
+                    ])
                     ->default('planned')
+                    ->native(false)
                     ->required(),
                 Textarea::make('notes')
                     ->label('Note')
@@ -92,8 +99,35 @@ class ScheduledInterventionsRelationManager extends RelationManager
                     ->searchable(),
                 TextColumn::make('status')
                     ->label('Stato')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'planned' => 'Pianificato',
+                        'confirmed' => 'Confermato',
+                        'completed' => 'Completato',
+                        'cancelled' => 'Annullato',
+                        default => $state ?: '-',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'planned' => 'gray',
+                        'confirmed' => 'info',
+                        'completed' => 'success',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    })
                     ->searchable(),
             ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Stato')
+                    ->options([
+                        'planned' => 'Pianificato',
+                        'confirmed' => 'Confermato',
+                        'completed' => 'Completato',
+                        'cancelled' => 'Annullato',
+                    ])
+                    ->native(false),
+            ])
+            ->defaultSort('planned_date')
             ->headerActions([
                 CreateAction::make(),
             ])

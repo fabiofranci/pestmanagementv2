@@ -2,11 +2,17 @@
 
 namespace App\Filament\Resources\Contracts\Tables;
 
+use App\Models\Customer;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ViewAction;
+use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class ContractsTable
 {
@@ -14,20 +20,37 @@ class ContractsTable
     {
         return $table
             ->columns([
-                TextColumn::make('customer_id')
-                    ->label('Cliente')
-                    ->state(fn ($record): ?string => $record->customer?->name)
-                    ->searchable(),
-                TextColumn::make('customer_site_id')
-                    ->label('Sede cliente')
-                    ->state(fn ($record): ?string => $record->site?->name)
-                    ->searchable(),
                 TextColumn::make('contract_number')
                     ->label('Numero contratto')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('customer.name')
+                    ->label('Cliente')
+                    ->searchable(),
+                TextColumn::make('site.name')
+                    ->label('Sede')
                     ->searchable(),
                 TextColumn::make('status')
                     ->label('Stato')
-                    ->searchable(),
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'draft' => 'Bozza',
+                        'active' => 'Attivo',
+                        'suspended' => 'Sospeso',
+                        'closed' => 'Chiuso',
+                        'cancelled' => 'Annullato',
+                        default => $state ?: '-',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'active' => 'success',
+                        'draft' => 'gray',
+                        'suspended' => 'warning',
+                        'closed' => 'info',
+                        'cancelled' => 'danger',
+                        default => 'gray',
+                    })
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('start_date')
                     ->label('Data inizio')
                     ->date()
@@ -36,22 +59,26 @@ class ContractsTable
                     ->label('Data fine')
                     ->date()
                     ->sortable(),
-                TextColumn::make('renewal')
-                    ->label('Rinnovo')
-                    ->searchable(),
-                TextColumn::make('term')
-                    ->label('Durata')
-                    ->searchable(),
-                TextColumn::make('payment_terms')
-                    ->label('Condizioni di pagamento')
-                    ->searchable(),
                 TextColumn::make('total_value')
                     ->label('Valore totale')
-                    ->numeric()
+                    ->money(fn ($record): string => $record->currency ?: 'EUR')
                     ->sortable(),
+                TextColumn::make('payment_terms')
+                    ->label('Condizioni pagamento')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('renewal')
+                    ->label('Rinnovo')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('term')
+                    ->label('Durata')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('currency')
                     ->label('Valuta')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('created_at')
                     ->label('Creato il')
                     ->dateTime()
@@ -64,9 +91,39 @@ class ContractsTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('status')
+                    ->label('Stato')
+                    ->options([
+                        'draft' => 'Bozza',
+                        'active' => 'Attivo',
+                        'suspended' => 'Sospeso',
+                        'closed' => 'Chiuso',
+                        'cancelled' => 'Annullato',
+                    ])
+                    ->native(false),
+                SelectFilter::make('customer_id')
+                    ->label('Cliente')
+                    ->options(fn (): array => Customer::query()
+                        ->orderBy('name')
+                        ->pluck('name', 'id')
+                        ->all())
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+                Filter::make('scadenza')
+                    ->label('Scadenza')
+                    ->schema([
+                        DatePicker::make('end_from')
+                            ->label('Fine da'),
+                        DatePicker::make('end_until')
+                            ->label('Fine a'),
+                    ])
+                    ->query(fn (Builder $query, array $data): Builder => $query
+                        ->when($data['end_from'] ?? null, fn (Builder $query, string $date): Builder => $query->whereDate('end_date', '>=', $date))
+                        ->when($data['end_until'] ?? null, fn (Builder $query, string $date): Builder => $query->whereDate('end_date', '<=', $date))),
             ])
             ->recordActions([
+                ViewAction::make(),
                 EditAction::make(),
             ])
             ->toolbarActions([

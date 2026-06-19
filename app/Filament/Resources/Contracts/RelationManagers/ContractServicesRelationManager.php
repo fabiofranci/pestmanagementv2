@@ -15,8 +15,10 @@ use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 
 class ContractServicesRelationManager extends RelationManager
@@ -45,6 +47,10 @@ class ContractServicesRelationManager extends RelationManager
                         ->all())
                     ->searchable()
                     ->preload()
+                    ->live()
+                    ->afterStateUpdated(function (Set $set): void {
+                        $set('area_id', null);
+                    })
                     ->native(false),
                 Select::make('area_id')
                     ->label('Area')
@@ -84,9 +90,15 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Decorrenza'),
                 DatePicker::make('ends_on')
                     ->label('Fine validita'),
-                TextInput::make('status')
+                Select::make('status')
                     ->label('Stato')
+                    ->options([
+                        'active' => 'Attivo',
+                        'suspended' => 'Sospeso',
+                        'closed' => 'Chiuso',
+                    ])
                     ->default('active')
+                    ->native(false)
                     ->required(),
                 Textarea::make('notes')
                     ->label('Note')
@@ -115,14 +127,39 @@ class ContractServicesRelationManager extends RelationManager
                     ->placeholder('-'),
                 TextColumn::make('total_price')
                     ->label('Totale')
-                    ->numeric()
+                    ->money(fn ($record): string => $record->currency ?: 'EUR')
                     ->sortable(),
                 TextColumn::make('currency')
-                    ->label('Valuta'),
+                    ->label('Valuta')
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('Stato')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'active' => 'Attivo',
+                        'suspended' => 'Sospeso',
+                        'closed' => 'Chiuso',
+                        default => $state ?: '-',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'active' => 'success',
+                        'suspended' => 'warning',
+                        'closed' => 'info',
+                        default => 'gray',
+                    })
                     ->searchable(),
             ])
+            ->filters([
+                SelectFilter::make('status')
+                    ->label('Stato')
+                    ->options([
+                        'active' => 'Attivo',
+                        'suspended' => 'Sospeso',
+                        'closed' => 'Chiuso',
+                    ])
+                    ->native(false),
+            ])
+            ->defaultSort('id')
             ->headerActions([
                 CreateAction::make(),
             ])

@@ -9,6 +9,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -29,12 +30,21 @@ class DocumentsRelationManager extends RelationManager
             ->components([
                 Hidden::make('uploaded_by_user_id')
                     ->default(fn (): ?int => auth()->id()),
-                TextInput::make('type')
+                Select::make('type')
                     ->label('Tipo')
+                    ->options([
+                        'contract' => 'Contratto',
+                        'technical_sheet' => 'Scheda tecnica',
+                        'safety_sheet' => 'Scheda sicurezza',
+                        'report' => 'Rapportino',
+                        'attachment' => 'Allegato',
+                    ])
+                    ->native(false)
                     ->required(),
                 TextInput::make('title')
                     ->label('Titolo')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
                 TextInput::make('file_path')
                     ->label('Percorso file'),
                 TextInput::make('mime_type')
@@ -58,6 +68,21 @@ class DocumentsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('type')
                     ->label('Tipo')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'contract' => 'Contratto',
+                        'technical_sheet' => 'Scheda tecnica',
+                        'safety_sheet' => 'Scheda sicurezza',
+                        'report' => 'Rapportino',
+                        'attachment' => 'Allegato',
+                        default => $state ?: '-',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'contract' => 'info',
+                        'technical_sheet', 'safety_sheet' => 'warning',
+                        'report' => 'success',
+                        default => 'gray',
+                    })
                     ->searchable(),
                 TextColumn::make('title')
                     ->label('Titolo')
@@ -74,6 +99,7 @@ class DocumentsRelationManager extends RelationManager
                     ->dateTime()
                     ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->headerActions([
                 CreateAction::make(),
             ])

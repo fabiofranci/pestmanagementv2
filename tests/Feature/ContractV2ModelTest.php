@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Filament\Resources\Contracts\ContractResource;
+use App\Filament\Resources\Contracts\Pages\CreateContract;
+use App\Http\Middleware\BootstrapTenantContext;
 use App\Models\Contract;
 use App\Models\ContractBillingSchedule;
 use App\Models\ContractEvent;
@@ -20,6 +22,7 @@ use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Livewire\Livewire;
 use RuntimeException;
 use Tests\TestCase;
 
@@ -186,6 +189,158 @@ class ContractV2ModelTest extends TestCase
         $this->assertSame(['CTR-ALPHA'], $contracts);
     }
 
+    public function test_contract_resource_index_is_accessible_to_tenant_admin(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            $this->createContractFixture($tenant, 'CTR-ADMIN', 'Cliente Admin');
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user)
+            ->get(ContractResource::getUrl('index'))
+            ->assertOk()
+            ->assertSee('CTR-ADMIN')
+            ->assertSee('Cliente Admin');
+    }
+
+    public function test_livewire_update_route_bootstraps_tenant_context(): void
+    {
+        $livewireUpdateRoute = collect(app('router')->getRoutes()->getRoutes())
+            ->first(fn ($route): bool => str_ends_with((string) $route->getName(), 'livewire.update'));
+
+        $this->assertNotNull($livewireUpdateRoute);
+        $this->assertContains('web', $livewireUpdateRoute->middleware());
+        $this->assertContains(BootstrapTenantContext::class, app('router')->getMiddlewareGroups()['web'] ?? []);
+    }
+
+    public function test_tenant_admin_can_create_contract_with_customer_selects(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$customer, $site] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            $customer = Customer::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'name' => 'Cliente Select',
+                'status' => 'active',
+            ]);
+
+            $site = CustomerSite::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'customer_id' => $customer->getKey(),
+                'name' => 'Sede Select',
+                'status' => 'active',
+            ]);
+
+            return [$customer, $site];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(TenantConnectionManager::class)->activate($tenant);
+        app(CurrentTenant::class)->set($tenant);
+        Filament::setTenant($tenant, isQuiet: true);
+
+        try {
+            $this->get(ContractResource::getUrl('create'))
+                ->assertOk();
+
+            Livewire::test(CreateContract::class)
+                ->fillForm([
+                    'contract_number' => 'CTR-SELECT',
+                    'status' => 'active',
+                    'customer_id' => $customer->getKey(),
+                    'customer_site_id' => $site->getKey(),
+                    'start_date' => '2026-07-01',
+                    'end_date' => '2027-06-30',
+                    'payment_terms' => '30 giorni',
+                    'total_value' => 1200,
+                    'currency' => 'EUR',
+                ])
+                ->call('create')
+                ->assertHasNoFormErrors();
+
+            $this->assertTrue(Contract::query()
+                ->where('contract_number', 'CTR-SELECT')
+                ->where('customer_id', $customer->getKey())
+                ->where('customer_site_id', $site->getKey())
+                ->exists());
+        } finally {
+            app(CurrentTenant::class)->set(null);
+            Filament::setTenant(null, isQuiet: true);
+            DB::purge(config('tenancy.database_connection'));
+        }
+    }
+
+    public function test_contract_view_page_renders_summary_and_related_data(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-VIEW', 'Cliente View');
+
+            $contractService = ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio vista',
+                'status' => 'active',
+            ]);
+
+            ScheduledIntervention::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'contract_service_id' => $contractService->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'planned_date' => now()->addDay()->toDateString(),
+                'status' => 'planned',
+            ]);
+
+            ContractBillingSchedule::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'description' => 'Scadenza vista',
+                'due_date' => now()->addWeek()->toDateString(),
+                'amount' => 250,
+                'currency' => 'EUR',
+                'status' => 'planned',
+            ]);
+
+            $contract->documents()->create([
+                'tenant_id' => $tenant->getKey(),
+                'type' => 'contract',
+                'title' => 'Documento vista',
+                'visible_to_customer' => true,
+            ]);
+
+            ContractEvent::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'event_type' => 'manual',
+                'title' => 'Evento vista',
+            ]);
+
+            return [$contract->getKey()];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user)
+            ->get(ContractResource::getUrl('view', ['record' => $contractId]))
+            ->assertOk()
+            ->assertSee('CTR-VIEW')
+            ->assertSee('Cliente View')
+            ->assertSee('Riepilogo operativo')
+            ->assertSee('Scadenza vista')
+            ->assertSee('Evento vista')
+            ->assertSee('Servizi contrattuali');
+    }
+
     protected function createTenant(): Tenant
     {
         return Tenant::query()->create([
@@ -193,6 +348,18 @@ class ContractV2ModelTest extends TestCase
             'slug' => 'tenant-demo',
             'db_database' => $this->tenantDatabasePath,
             'status' => 'active',
+        ]);
+    }
+
+    protected function createTenantAdmin(Tenant $tenant): User
+    {
+        return User::query()->create([
+            'name' => 'Tenant Admin',
+            'email' => 'tenant-admin-'.uniqid().'@example.com',
+            'password' => 'password123',
+            'tenant_id' => $tenant->getKey(),
+            'customer_id' => null,
+            'is_superuser' => false,
         ]);
     }
 

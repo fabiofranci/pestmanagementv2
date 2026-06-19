@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\Contracts\Pages;
 
 use App\Filament\Resources\Contracts\ContractResource;
-use Filament\Actions\DeleteAction;
+use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
 
 class EditContract extends EditRecord
@@ -13,7 +13,9 @@ class EditContract extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
-            DeleteAction::make(),
+            Action::make('viewContract')
+                ->label('Riepilogo')
+                ->url(fn (): string => ContractResource::getUrl('view', ['record' => $this->getRecord()])),
         ];
     }
 }

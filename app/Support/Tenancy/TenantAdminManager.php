@@ -94,9 +94,20 @@ class TenantAdminManager
             'guard_name' => 'web',
         ]);
 
-        $user->roles()->syncWithoutDetaching([
-            $role->getKey() => ['tenant_id' => $tenant->getKey()],
-        ]);
+        $roleAlreadyAssigned = DB::table(config('permission.table_names.model_has_roles'))
+            ->where(config('permission.column_names.role_pivot_key') ?? 'role_id', $role->getKey())
+            ->where(config('permission.column_names.model_morph_key'), $user->getKey())
+            ->where('model_type', $user->getMorphClass())
+            ->where(config('permission.column_names.team_foreign_key'), $tenant->getKey())
+            ->exists();
+
+        if (! $roleAlreadyAssigned) {
+            $user->roles()->attach($role->getKey(), [
+                config('permission.column_names.team_foreign_key') => $tenant->getKey(),
+            ]);
+        }
+
+        $user->unsetRelation('roles');
     }
 
     protected function guardAdminBelongsToTenant(Tenant $tenant, User $user): void

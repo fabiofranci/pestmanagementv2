@@ -9,6 +9,7 @@ use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\KeyValue;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -27,12 +28,24 @@ class ContractEventsRelationManager extends RelationManager
             ->components([
                 Hidden::make('created_by_user_id')
                     ->default(fn (): ?int => auth()->id()),
-                TextInput::make('event_type')
+                Select::make('event_type')
                     ->label('Tipo evento')
+                    ->options([
+                        'manual' => 'Manuale',
+                        'note' => 'Nota',
+                        'created' => 'Creazione',
+                        'closed' => 'Chiusura',
+                        'reactivated' => 'Riattivazione',
+                        'duplicated' => 'Duplicazione',
+                        'status_changed' => 'Cambio stato',
+                    ])
+                    ->default('manual')
+                    ->native(false)
                     ->required(),
                 TextInput::make('title')
                     ->label('Titolo')
-                    ->required(),
+                    ->required()
+                    ->maxLength(255),
                 KeyValue::make('payload')
                     ->label('Dati')
                     ->columnSpanFull(),
@@ -46,6 +59,23 @@ class ContractEventsRelationManager extends RelationManager
             ->columns([
                 TextColumn::make('event_type')
                     ->label('Tipo')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'manual' => 'Manuale',
+                        'note' => 'Nota',
+                        'created' => 'Creazione',
+                        'closed' => 'Chiusura',
+                        'reactivated' => 'Riattivazione',
+                        'duplicated' => 'Duplicazione',
+                        'status_changed' => 'Cambio stato',
+                        default => $state ?: '-',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'closed' => 'warning',
+                        'reactivated' => 'success',
+                        'duplicated' => 'info',
+                        default => 'gray',
+                    })
                     ->searchable(),
                 TextColumn::make('title')
                     ->label('Titolo')
@@ -55,6 +85,7 @@ class ContractEventsRelationManager extends RelationManager
                     ->dateTime()
                     ->sortable(),
             ])
+            ->defaultSort('created_at', 'desc')
             ->headerActions([
                 CreateAction::make(),
             ])
