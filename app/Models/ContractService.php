@@ -3,10 +3,12 @@
 namespace App\Models;
 
 use App\Models\Concerns\UsesTenantConnection;
+use App\Support\Tenancy\CurrentTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Validation\ValidationException;
 
 class ContractService extends Model
 {
@@ -21,6 +23,8 @@ class ContractService extends Model
         'area_id',
         'description',
         'frequency',
+        'operational_frequency',
+        'billing_frequency',
         'quantity',
         'unit_price',
         'total_price',
@@ -38,6 +42,56 @@ class ContractService extends Model
         'starts_on' => 'date',
         'ends_on' => 'date',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (ContractService $service): void {
+            $service->ensureContractServiceModeAllowsCreation();
+        });
+    }
+
+    protected function ensureContractServiceModeAllowsCreation(): void
+    {
+        $tenant = $this->resolveTenantForServiceMode();
+
+        if (! $tenant?->usesSingleContractServiceMode()) {
+            return;
+        }
+
+        if (blank($this->contract_id)) {
+            return;
+        }
+
+        $query = static::query()
+            ->where('contract_id', $this->contract_id);
+
+        if (filled($this->tenant_id)) {
+            $query->where('tenant_id', $this->tenant_id);
+        }
+
+        if (! $query->exists()) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'contract_id' => 'Questo tenant consente un solo servizio per contratto.',
+        ]);
+    }
+
+    protected function resolveTenantForServiceMode(): ?Tenant
+    {
+        $currentTenant = app(CurrentTenant::class)->get();
+
+        if ($currentTenant && ((int) $currentTenant->getKey() === (int) ($this->tenant_id ?: $currentTenant->getKey()))) {
+            return $currentTenant;
+        }
+
+        if (filled($this->tenant_id)) {
+            return Tenant::query()->find($this->tenant_id);
+        }
+
+        return $currentTenant;
+    }
 
     public function contract(): BelongsTo
     {

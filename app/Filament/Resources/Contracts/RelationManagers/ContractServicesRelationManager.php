@@ -4,11 +4,14 @@ namespace App\Filament\Resources\Contracts\RelationManagers;
 
 use App\Models\Area;
 use App\Models\CustomerSite;
+use App\Models\Tenant;
+use App\Support\Tenancy\CurrentTenant;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -20,12 +23,23 @@ use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class ContractServicesRelationManager extends RelationManager
 {
     protected static string $relationship = 'services';
 
-    protected static ?string $title = 'Servizi contrattuali';
+    public static function getTitle(Model $ownerRecord, string $pageClass): string
+    {
+        return static::usesSingleServiceModeFor($ownerRecord)
+            ? 'Servizio principale'
+            : 'Servizi contrattuali';
+    }
+
+    protected function canCreate(): bool
+    {
+        return parent::canCreate() && $this->canCreateAnotherService();
+    }
 
     public function form(Schema $schema): Schema
     {
@@ -70,8 +84,8 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Descrizione')
                     ->required()
                     ->columnSpanFull(),
-                Select::make('frequency')
-                    ->label('Frequenza')
+                Select::make('operational_frequency')
+                    ->label('Cadenza operativa')
                     ->options([
                         'monthly' => 'Mensile',
                         'quarterly' => 'Trimestrale',
@@ -80,6 +94,16 @@ class ContractServicesRelationManager extends RelationManager
                     ])
                     ->native(false)
                     ->helperText('Usata per generare gli interventi programmati dal contratto.'),
+                Select::make('billing_frequency')
+                    ->label('Cadenza fatturazione')
+                    ->options([
+                        'monthly' => 'Mensile',
+                        'quarterly' => 'Trimestrale',
+                        'yearly' => 'Annuale',
+                        'one_time' => 'Unica soluzione',
+                    ])
+                    ->native(false)
+                    ->helperText('Usata come riferimento per il piano fatturazione previsto.'),
                 TextInput::make('quantity')
                     ->label('Quantita')
                     ->numeric(),
@@ -117,6 +141,10 @@ class ContractServicesRelationManager extends RelationManager
     public function table(Table $table): Table
     {
         return $table
+            ->heading(fn (): string => $this->usesSingleServiceMode() ? 'Servizio principale' : 'Servizi contrattuali')
+            ->description(fn (): string => $this->usesSingleServiceMode()
+                ? 'Questo tenant consente un solo servizio per contratto.'
+                : 'Questo tenant consente piu servizi nello stesso contratto.')
             ->recordTitleAttribute('description')
             ->columns([
                 TextColumn::make('serviceType.name')
@@ -130,13 +158,24 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Area')
                     ->placeholder('-')
                     ->searchable(),
-                TextColumn::make('frequency')
-                    ->label('Frequenza')
+                TextColumn::make('operational_frequency')
+                    ->label('Cadenza operativa')
+                    ->state(fn ($record): ?string => $record->operational_frequency ?: $record->frequency)
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'monthly' => 'Mensile',
                         'quarterly' => 'Trimestrale',
                         'yearly' => 'Annuale',
                         'one_time' => 'Una tantum',
+                        default => $state ?: '-',
+                    })
+                    ->placeholder('-'),
+                TextColumn::make('billing_frequency')
+                    ->label('Cadenza fatturazione')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'monthly' => 'Mensile',
+                        'quarterly' => 'Trimestrale',
+                        'yearly' => 'Annuale',
+                        'one_time' => 'Unica soluzione',
                         default => $state ?: '-',
                     })
                     ->placeholder('-'),
@@ -176,7 +215,22 @@ class ContractServicesRelationManager extends RelationManager
             ])
             ->defaultSort('id')
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->label(fn (): string => $this->usesSingleServiceMode() ? 'Aggiungi servizio principale' : 'Aggiungi servizio')
+                    ->hidden(fn (): bool => ! $this->canCreate())
+                    ->before(function (CreateAction $action): void {
+                        if ($this->canCreateAnotherService()) {
+                            return;
+                        }
+
+                        Notification::make()
+                            ->warning()
+                            ->title('Servizio gia presente')
+                            ->body('Questo tenant consente un solo servizio per contratto.')
+                            ->send();
+
+                        $action->halt();
+                    }),
             ])
             ->recordActions([
                 EditAction::make(),
@@ -187,5 +241,30 @@ class ContractServicesRelationManager extends RelationManager
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected function canCreateAnotherService(): bool
+    {
+        return ! $this->usesSingleServiceMode()
+            || ! $this->getOwnerRecord()->services()->exists();
+    }
+
+    protected function usesSingleServiceMode(): bool
+    {
+        return static::usesSingleServiceModeFor($this->getOwnerRecord());
+    }
+
+    protected static function usesSingleServiceModeFor(Model $ownerRecord): bool
+    {
+        $currentTenant = app(CurrentTenant::class)->get();
+
+        if ($currentTenant && (int) $currentTenant->getKey() === (int) $ownerRecord->tenant_id) {
+            return $currentTenant->usesSingleContractServiceMode();
+        }
+
+        return Tenant::query()
+            ->whereKey($ownerRecord->tenant_id)
+            ->first()
+            ?->usesSingleContractServiceMode() ?? false;
     }
 }

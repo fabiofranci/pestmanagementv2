@@ -8,6 +8,8 @@ Il video mostra un gestionale desktop usato dal cliente come riferimento operati
 
 Nota di correzione: la parte relativa all'invio fattura non viene considerata requisito del gestionale del cliente, perché si riferisce alla fattura di StudioWeb19/Fabio verso il cliente. È quindi fuori perimetro rispetto a Pest Management V2.
 
+Nota AZ: per AZ il tenant va configurato con `contract_service_mode = single_service`, quindi ogni contratto rappresenta un solo servizio. Il default prodotto resta `multiple_services`.
+
 ---
 
 ## 1. Scheda Preventivo / Contratto come centro operativo
@@ -174,7 +176,7 @@ Significato:
 | Evidenza dal video | Richiesta funzionale | Entità V2 | Stato | Priorità |
 |---|---|---|---|---|
 | Scheda contratto completa | Il contratto deve essere il centro operativo | `contracts` + relation manager | UI Filament migliorata | alta |
-| Servizi dentro il contratto | Gestire prestazioni incluse, frequenze e importi | `contract_services` | modello fatto, UI migliorata | alta |
+| Servizi dentro il contratto | Gestire servizi, frequenze e importi del contratto | `contract_services` | multi-servizio di default, single-service configurabile per AZ | alta |
 | Interventi programmati | Vedere il calendario/previsione degli interventi | `scheduled_interventions` | generazione base fatta | alta |
 | Scadenze economiche del contratto | Gestire piano di fatturazione previsto, non fattura fiscale | `contract_billing_schedules` | generazione base fatta | media |
 | Pulsanti stampa/email/schede | Generare documenti e allegati | `documents` + PDF futuri | base fatta, stampe da fare | media |

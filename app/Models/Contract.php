@@ -6,6 +6,7 @@ use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 class Contract extends Model
@@ -22,6 +23,9 @@ class Contract extends Model
         'start_date',
         'end_date',
         'renewal',
+        'tacit_renewal',
+        'renewal_price_increase_percentage',
+        'renewal_notice_days',
         'term',
         'payment_terms',
         'total_value',
@@ -32,6 +36,9 @@ class Contract extends Model
     protected $casts = [
         'start_date' => 'date',
         'end_date' => 'date',
+        'tacit_renewal' => 'boolean',
+        'renewal_price_increase_percentage' => 'decimal:2',
+        'renewal_notice_days' => 'integer',
     ];
 
     public function tenant()
@@ -52,6 +59,11 @@ class Contract extends Model
     public function services(): HasMany
     {
         return $this->hasMany(ContractService::class);
+    }
+
+    public function service(): HasOne
+    {
+        return $this->hasOne(ContractService::class);
     }
 
     public function scheduledInterventions(): HasMany

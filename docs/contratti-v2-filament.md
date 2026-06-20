@@ -38,7 +38,7 @@ Questo documento riepiloga il lavoro del branch `feature/contratti-v2-filament`.
 - La vista mostra:
   - dati contratto;
   - cliente e sede;
-  - conteggio servizi;
+  - riepilogo servizi contrattuali, con label dinamica in base al tenant;
   - prossimo intervento programmato;
   - prossima scadenza del piano fatturazione;
   - ultimi eventi.
@@ -56,6 +56,10 @@ Questo documento riepiloga il lavoro del branch `feature/contratti-v2-filament`.
 Migliorati i Relation Manager gia presenti:
 
 - `ContractServicesRelationManager`
+  - multi-servizio di default;
+  - limitato a servizio principale solo per tenant con `contract_service_mode = single_service`;
+  - label dinamica: `Servizi contrattuali` o `Servizio principale`;
+  - cadenza operativa e cadenza fatturazione distinte;
   - stato con select e badge;
   - filtro stato;
   - importi formattati;

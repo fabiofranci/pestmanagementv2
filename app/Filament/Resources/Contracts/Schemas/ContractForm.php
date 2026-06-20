@@ -2,12 +2,15 @@
 
 namespace App\Filament\Resources\Contracts\Schemas;
 
+use App\Models\Contract;
 use App\Models\Customer;
 use App\Models\CustomerSite;
+use App\Support\Tenancy\CurrentTenant;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -24,7 +27,14 @@ class ContractForm
                     ->schema([
                         TextInput::make('contract_number')
                             ->label('Numero contratto')
+                            ->helperText('Accetta numerazioni storiche come 2025/1, 2026/1, 1072 o 9999.')
                             ->required()
+                            ->scopedUnique(
+                                Contract::class,
+                                'contract_number',
+                                ignoreRecord: true,
+                                modifyQueryUsing: fn ($query) => $query->where('tenant_id', app(CurrentTenant::class)->id()),
+                            )
                             ->maxLength(255),
                         Select::make('status')
                             ->label('Stato')
@@ -116,8 +126,24 @@ class ContractForm
                         TextInput::make('renewal')
                             ->label('Rinnovo')
                             ->maxLength(255),
+                        Toggle::make('tacit_renewal')
+                            ->label('Rinnovo tacito')
+                            ->default(false),
+                        TextInput::make('renewal_price_increase_percentage')
+                            ->label('Aumento rinnovo %')
+                            ->numeric()
+                            ->default(4.00)
+                            ->minValue(0)
+                            ->suffix('%'),
+                        TextInput::make('renewal_notice_days')
+                            ->label('Preavviso rinnovo')
+                            ->numeric()
+                            ->integer()
+                            ->default(30)
+                            ->minValue(0)
+                            ->suffix('giorni'),
                     ])
-                    ->columns(2),
+                    ->columns(3),
                 Section::make('Valori economici')
                     ->schema([
                         TextInput::make('payment_terms')

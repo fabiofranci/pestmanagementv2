@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Tenants\Schemas;
 
+use App\Models\Tenant;
 use App\Support\Filament\PanelAppearance;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -92,6 +93,17 @@ class TenantForm
                             ->helperText('Il font viene caricato da Google Fonts.'),
                     ])
                     ->columns(3),
+                Section::make('Configurazione contratti')
+                    ->description('Definisce come questo tenant gestisce i servizi collegati a un contratto.')
+                    ->schema([
+                        Select::make('contract_service_mode')
+                            ->label('Servizi per contratto')
+                            ->options(Tenant::contractServiceModeOptions())
+                            ->default(Tenant::CONTRACT_SERVICE_MODE_MULTIPLE)
+                            ->native(false)
+                            ->required()
+                            ->helperText('Usa "un solo servizio" per tenant come AZ. Il default del prodotto resta multi-servizio.'),
+                    ]),
             ]);
     }
 }

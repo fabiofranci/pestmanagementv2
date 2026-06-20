@@ -15,6 +15,7 @@ L'azione:
 - usa la sede del servizio contrattuale, oppure la sede del contratto come fallback;
 - usa il `service_type_id` del servizio contrattuale;
 - usa `starts_on` / `ends_on` del servizio, oppure `start_date` / `end_date` del contratto;
+- usa `operational_frequency` come cadenza operativa, con fallback al vecchio campo `frequency`;
 - supporta frequenze semplici:
   - `monthly`;
   - `quarterly`;
@@ -38,6 +39,7 @@ L'azione:
 
 - crea record in `contract_billing_schedules`;
 - usa `total_value`, `currency`, `start_date` ed `end_date` del contratto;
+- propone come default la `billing_frequency` del primo servizio contrattuale, se presente;
 - supporta modalita:
   - unica soluzione;
   - mensile;

@@ -60,6 +60,10 @@ class TenantsTable
                     ->label('Font')
                     ->formatStateUsing(fn (?string $state): string => app(PanelAppearance::class)->fontLabel($state))
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('contract_service_mode')
+                    ->label('Servizi contratto')
+                    ->formatStateUsing(fn (?string $state): string => Tenant::contractServiceModeOptions()[$state] ?? Tenant::contractServiceModeOptions()[Tenant::CONTRACT_SERVICE_MODE_MULTIPLE])
+                    ->badge(),
                 TextColumn::make('status')
                     ->label('Stato')
                     ->searchable(),

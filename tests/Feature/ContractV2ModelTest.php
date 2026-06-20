@@ -21,9 +21,11 @@ use App\Support\Contracts\ContractProgrammingService;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantConnectionManager;
 use Filament\Facades\Filament;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use RuntimeException;
 use Tests\TestCase;
@@ -34,40 +36,23 @@ class ContractV2ModelTest extends TestCase
 
     protected string $tenantDatabasePath;
 
+    protected array $tenantDatabasePaths = [];
+
     protected function setUp(): void
     {
         parent::setUp();
 
-        $databasePath = tempnam(sys_get_temp_dir(), 'tenant-db-');
-
-        if ($databasePath === false) {
-            throw new RuntimeException('Impossibile creare il database temporaneo tenant per i test.');
-        }
-
-        $this->tenantDatabasePath = $databasePath;
-
-        config([
-            'database.connections.tenant' => [
-                'driver' => 'sqlite',
-                'database' => $this->tenantDatabasePath,
-                'prefix' => '',
-                'foreign_key_constraints' => true,
-            ],
-        ]);
-
-        Artisan::call('migrate', [
-            '--database' => 'tenant',
-            '--path' => database_path('migrations/tenant'),
-            '--realpath' => true,
-        ]);
+        $this->tenantDatabasePath = $this->createMigratedTenantDatabase();
     }
 
     protected function tearDown(): void
     {
         DB::purge('tenant');
 
-        if (isset($this->tenantDatabasePath) && is_file($this->tenantDatabasePath)) {
-            @unlink($this->tenantDatabasePath);
+        foreach (array_unique($this->tenantDatabasePaths) as $tenantDatabasePath) {
+            if (is_file($tenantDatabasePath)) {
+                @unlink($tenantDatabasePath);
+            }
         }
 
         parent::tearDown();
@@ -149,6 +134,139 @@ class ContractV2ModelTest extends TestCase
             $this->assertCount(1, $contract->billingSchedules);
             $this->assertCount(1, $contract->documents);
             $this->assertCount(1, $contract->events);
+        });
+    }
+
+    public function test_contract_number_is_unique_for_the_same_tenant(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->expectException(QueryException::class);
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            $this->createContractFixture($tenant, '2026/1', 'Cliente Alpha');
+            $this->createContractFixture($tenant, '2026/1', 'Cliente Beta');
+        });
+    }
+
+    public function test_same_contract_number_is_allowed_for_different_tenants(): void
+    {
+        $tenantA = $this->createTenant('Tenant A', 'tenant-a');
+        $tenantB = $this->createTenant('Tenant B', 'tenant-b', $this->createMigratedTenantDatabase());
+
+        $this->withinTenant($tenantA, function (Tenant $tenant): void {
+            $this->createContractFixture($tenant, '2026/1', 'Cliente Alpha');
+        });
+
+        $this->withinTenant($tenantB, function (Tenant $tenant): void {
+            $this->createContractFixture($tenant, '2026/1', 'Cliente Beta');
+        });
+
+        $this->assertTrue(true);
+    }
+
+    public function test_contract_number_allows_historical_slash_format(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract] = $this->createContractFixture($tenant, '2025/1', 'Cliente Storico');
+
+            $this->assertSame('2025/1', $contract->contract_number);
+        });
+    }
+
+    public function test_default_contract_service_mode_allows_multiple_services(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->assertSame(Tenant::CONTRACT_SERVICE_MODE_MULTIPLE, $tenant->refresh()->contractServiceMode());
+    }
+
+    public function test_single_service_tenant_cannot_create_more_than_one_service_per_contract(): void
+    {
+        $tenant = $this->createTenant(contractServiceMode: Tenant::CONTRACT_SERVICE_MODE_SINGLE);
+
+        $this->expectException(ValidationException::class);
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-ONE-SERVICE', 'Cliente Servizio');
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Primo servizio',
+                'operational_frequency' => 'monthly',
+                'billing_frequency' => 'quarterly',
+                'status' => 'active',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Secondo servizio',
+                'operational_frequency' => 'yearly',
+                'billing_frequency' => 'yearly',
+                'status' => 'active',
+            ]);
+        });
+    }
+
+    public function test_multiple_services_tenant_can_create_more_services_per_contract(): void
+    {
+        $tenant = $this->createTenant(contractServiceMode: Tenant::CONTRACT_SERVICE_MODE_MULTIPLE);
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-MANY-SERVICES', 'Cliente Multi Servizio');
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Primo servizio',
+                'operational_frequency' => 'monthly',
+                'billing_frequency' => 'quarterly',
+                'status' => 'active',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Secondo servizio',
+                'operational_frequency' => 'yearly',
+                'billing_frequency' => 'yearly',
+                'status' => 'active',
+            ]);
+
+            $this->assertSame(2, $contract->services()->count());
+        });
+    }
+
+    public function test_tacit_renewal_fields_are_persisted(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract] = $this->createContractFixture($tenant, 'CTR-RENEWAL', 'Cliente Rinnovo');
+
+            $contract->update([
+                'tacit_renewal' => true,
+                'renewal_price_increase_percentage' => 4.00,
+                'renewal_notice_days' => 45,
+            ]);
+
+            $contract->refresh();
+
+            $this->assertTrue($contract->tacit_renewal);
+            $this->assertSame('4.00', $contract->renewal_price_increase_percentage);
+            $this->assertSame(45, $contract->renewal_notice_days);
         });
     }
 
@@ -448,17 +566,8 @@ class ContractV2ModelTest extends TestCase
                 'service_type_id' => $serviceType->getKey(),
                 'customer_site_id' => $site->getKey(),
                 'description' => 'Servizio mensile',
-                'frequency' => 'monthly',
-                'status' => 'active',
-            ]);
-
-            ContractService::query()->create([
-                'tenant_id' => $tenant->getKey(),
-                'contract_id' => $contract->getKey(),
-                'service_type_id' => $serviceType->getKey(),
-                'customer_site_id' => $site->getKey(),
-                'description' => 'Servizio non supportato',
-                'frequency' => 'weekly',
+                'operational_frequency' => 'monthly',
+                'billing_frequency' => 'quarterly',
                 'status' => 'active',
             ]);
 
@@ -466,7 +575,7 @@ class ContractV2ModelTest extends TestCase
                 ->generateScheduledInterventions($contract->refresh());
 
             $this->assertSame(3, $result['created']);
-            $this->assertSame(1, $result['skipped']);
+            $this->assertSame(0, $result['skipped']);
             $this->assertSame([
                 '2026-01-01',
                 '2026-02-01',
@@ -498,7 +607,7 @@ class ContractV2ModelTest extends TestCase
                 ->firstOrFail();
 
             $this->assertSame(3, $event->payload['created']);
-            $this->assertSame(1, $event->payload['skipped']);
+            $this->assertSame(0, $event->payload['skipped']);
         });
     }
 
@@ -557,14 +666,55 @@ class ContractV2ModelTest extends TestCase
         });
     }
 
-    protected function createTenant(): Tenant
+    protected function createTenant(
+        string $name = 'Tenant Demo',
+        string $slug = 'tenant-demo',
+        ?string $databasePath = null,
+        ?string $contractServiceMode = null,
+    ): Tenant
     {
-        return Tenant::query()->create([
-            'name' => 'Tenant Demo',
-            'slug' => 'tenant-demo',
-            'db_database' => $this->tenantDatabasePath,
+        $data = [
+            'name' => $name,
+            'slug' => $slug,
+            'db_database' => $databasePath ?? $this->tenantDatabasePath,
             'status' => 'active',
+        ];
+
+        if ($contractServiceMode !== null) {
+            $data['contract_service_mode'] = $contractServiceMode;
+        }
+
+        return Tenant::query()->create($data);
+    }
+
+    protected function createMigratedTenantDatabase(): string
+    {
+        $databasePath = tempnam(sys_get_temp_dir(), 'tenant-db-');
+
+        if ($databasePath === false) {
+            throw new RuntimeException('Impossibile creare il database temporaneo tenant per i test.');
+        }
+
+        $this->tenantDatabasePaths[] = $databasePath;
+
+        config([
+            'database.connections.tenant' => [
+                'driver' => 'sqlite',
+                'database' => $databasePath,
+                'prefix' => '',
+                'foreign_key_constraints' => true,
+            ],
         ]);
+
+        Artisan::call('migrate', [
+            '--database' => 'tenant',
+            '--path' => database_path('migrations/tenant'),
+            '--realpath' => true,
+        ]);
+
+        DB::purge('tenant');
+
+        return $databasePath;
     }
 
     protected function createTenantAdmin(Tenant $tenant): User

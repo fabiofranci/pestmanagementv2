@@ -15,6 +15,8 @@ use App\Filament\Resources\Contracts\Schemas\ContractForm;
 use App\Filament\Resources\Contracts\Tables\ContractsTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\Contract;
+use App\Models\Tenant;
+use App\Support\Tenancy\CurrentTenant;
 use BackedEnum;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Components\Section;
@@ -93,6 +95,17 @@ class ContractResource extends TenantScopedResource
                         TextEntry::make('renewal')
                             ->label('Rinnovo')
                             ->placeholder('-'),
+                        TextEntry::make('tacit_renewal')
+                            ->label('Rinnovo tacito')
+                            ->formatStateUsing(fn (?bool $state): string => $state ? 'Si' : 'No')
+                            ->badge()
+                            ->color(fn (?bool $state): string => $state ? 'success' : 'gray'),
+                        TextEntry::make('renewal_price_increase_percentage')
+                            ->label('Aumento rinnovo')
+                            ->formatStateUsing(fn ($state): string => filled($state) ? "{$state}%" : '-'),
+                        TextEntry::make('renewal_notice_days')
+                            ->label('Preavviso rinnovo')
+                            ->formatStateUsing(fn ($state): string => filled($state) ? "{$state} giorni" : '-'),
                     ])
                     ->columns(3),
                 Section::make('Cliente e sede')
@@ -108,9 +121,38 @@ class ContractResource extends TenantScopedResource
                     ->columns(3),
                 Section::make('Riepilogo operativo')
                     ->schema([
-                        TextEntry::make('services_summary')
-                            ->label('Servizi')
-                            ->state(fn (Contract $record): string => (string) $record->services()->count()),
+                        TextEntry::make('contract_services_summary')
+                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Servizio principale' : 'Servizi contrattuali')
+                            ->state(function (Contract $record): string {
+                                $services = $record->services()->with('serviceType')->get();
+
+                                if ($services->isEmpty()) {
+                                    return 'Nessun servizio';
+                                }
+
+                                if (static::usesSingleServiceMode($record)) {
+                                    return $services->first()?->serviceType?->name ?? $services->first()?->description ?? 'Servizio configurato';
+                                }
+
+                                return $services
+                                    ->map(fn ($service): string => $service->serviceType?->name ?? $service->description)
+                                    ->filter()
+                                    ->implode(', ');
+                            }),
+                        TextEntry::make('operational_frequencies')
+                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Cadenza operativa' : 'Cadenze operative')
+                            ->state(function (Contract $record): string {
+                                return static::formatFrequencyList($record->services()
+                                    ->get()
+                                    ->map(fn ($service): ?string => $service->operational_frequency ?: $service->frequency)
+                                    ->all());
+                            }),
+                        TextEntry::make('billing_frequencies')
+                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Cadenza fatturazione' : 'Cadenze fatturazione')
+                            ->state(fn (Contract $record): string => static::formatFrequencyList(
+                                $record->services()->pluck('billing_frequency')->all(),
+                                oneTimeLabel: 'Unica soluzione',
+                            )),
                         TextEntry::make('next_scheduled_intervention')
                             ->label('Prossimo intervento')
                             ->state(function (Contract $record): string {
@@ -160,6 +202,43 @@ class ContractResource extends TenantScopedResource
                                 ->implode("\n") ?: 'Nessun evento'),
                     ]),
             ]);
+    }
+
+    protected static function formatFrequency(?string $frequency, string $oneTimeLabel = 'Una tantum'): string
+    {
+        return match ($frequency) {
+            'monthly' => 'Mensile',
+            'quarterly' => 'Trimestrale',
+            'yearly' => 'Annuale',
+            'one_time' => $oneTimeLabel,
+            default => $frequency ?: '-',
+        };
+    }
+
+    protected static function formatFrequencyList(array $frequencies, string $oneTimeLabel = 'Una tantum'): string
+    {
+        $formatted = collect($frequencies)
+            ->filter()
+            ->map(fn (?string $frequency): string => static::formatFrequency($frequency, $oneTimeLabel))
+            ->unique()
+            ->values()
+            ->all();
+
+        return $formatted === [] ? '-' : implode(', ', $formatted);
+    }
+
+    protected static function usesSingleServiceMode(Contract $record): bool
+    {
+        $currentTenant = app(CurrentTenant::class)->get();
+
+        if ($currentTenant && (int) $currentTenant->getKey() === (int) $record->tenant_id) {
+            return $currentTenant->usesSingleContractServiceMode();
+        }
+
+        return Tenant::query()
+            ->whereKey($record->tenant_id)
+            ->first()
+            ?->usesSingleContractServiceMode() ?? false;
     }
 
     public static function getRelations(): array

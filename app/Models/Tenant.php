@@ -9,10 +9,15 @@ class Tenant extends Model
 {
     use HasFactory;
 
+    public const CONTRACT_SERVICE_MODE_SINGLE = 'single_service';
+
+    public const CONTRACT_SERVICE_MODE_MULTIPLE = 'multiple_services';
+
     protected $fillable = [
         'name',
         'slug',
         'domain',
+        'contract_service_mode',
         'db_host',
         'db_port',
         'db_database',
@@ -29,6 +34,31 @@ class Tenant extends Model
         return [
             'db_password' => 'encrypted',
         ];
+    }
+
+    public static function contractServiceModeOptions(): array
+    {
+        return [
+            self::CONTRACT_SERVICE_MODE_MULTIPLE => 'Piu servizi per contratto',
+            self::CONTRACT_SERVICE_MODE_SINGLE => 'Un solo servizio per contratto',
+        ];
+    }
+
+    public function contractServiceMode(): string
+    {
+        return array_key_exists($this->contract_service_mode, self::contractServiceModeOptions())
+            ? $this->contract_service_mode
+            : self::CONTRACT_SERVICE_MODE_MULTIPLE;
+    }
+
+    public function usesSingleContractServiceMode(): bool
+    {
+        return $this->contractServiceMode() === self::CONTRACT_SERVICE_MODE_SINGLE;
+    }
+
+    public function allowsMultipleContractServices(): bool
+    {
+        return $this->contractServiceMode() === self::CONTRACT_SERVICE_MODE_MULTIPLE;
     }
 
     public function customers()

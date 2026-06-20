@@ -108,7 +108,7 @@ class ViewContract extends ViewRecord
                         'quarterly' => 'Trimestrale',
                         'yearly' => 'Annuale',
                     ])
-                    ->default('one_time')
+                    ->default(fn (): string => $this->getRecord()->service()->value('billing_frequency') ?: 'one_time')
                     ->native(false)
                     ->required(),
             ])

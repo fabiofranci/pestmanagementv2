@@ -21,11 +21,11 @@ class ContractProgrammingService
         $contract->loadMissing('services');
 
         foreach ($contract->services->where('status', 'active') as $service) {
-            $frequency = $this->normalizeFrequency($service->frequency);
+            $frequency = $this->normalizeFrequency($service->operational_frequency ?: $service->frequency);
 
             if (! $frequency) {
                 $skipped[] = $this->skippedService($service, 'frequency_not_supported', [
-                    'frequency' => $service->frequency,
+                    'frequency' => $service->operational_frequency ?: $service->frequency,
                 ]);
 
                 continue;
