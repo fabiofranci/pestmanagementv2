@@ -53,7 +53,8 @@ class CurrentTenant
             return $user->tenant;
         }
 
-        $tenantId = session(config('tenancy.session_key'));
+        $tenantId = request()->query('tenant')
+            ?: session(config('tenancy.session_key'));
 
         if (! $tenantId) {
             return null;
@@ -63,7 +64,11 @@ class CurrentTenant
 
         if (! $tenant) {
             $this->clear();
+
+            return null;
         }
+
+        session([config('tenancy.session_key') => $tenant->getKey()]);
 
         return $tenant;
     }
