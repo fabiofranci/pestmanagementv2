@@ -19,6 +19,7 @@ class Tenant extends Model
         'domain',
         'contract_service_mode',
         'enabled_modules',
+        'module_order',
         'db_host',
         'db_port',
         'db_database',
@@ -35,6 +36,7 @@ class Tenant extends Model
         return [
             'db_password' => 'encrypted',
             'enabled_modules' => 'array',
+            'module_order' => 'array',
         ];
     }
 
@@ -72,6 +74,19 @@ class Tenant extends Model
         }
 
         return in_array($module, $enabledModules, true);
+    }
+
+    public function getModuleSort(string $module): ?int
+    {
+        $moduleOrder = $this->module_order;
+
+        if (! is_array($moduleOrder) || $moduleOrder === []) {
+            return null;
+        }
+
+        $position = array_search($module, array_values($moduleOrder), true);
+
+        return $position === false ? null : (($position + 1) * 10);
     }
 
     public function customers()

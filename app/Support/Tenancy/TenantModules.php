@@ -39,6 +39,21 @@ class TenantModules
         ];
     }
 
+    public static function standardOrder(): array
+    {
+        return [
+            self::DASHBOARD,
+            self::CUSTOMERS,
+            self::CUSTOMER_SITES,
+            self::CONTRACTS,
+            self::AREAS,
+            self::MONITORING_POINTS,
+            self::SERVICE_TYPES,
+            self::PEST_TYPES,
+            self::ORGANIZATIONS,
+        ];
+    }
+
     public function currentTenantHas(?string $module): bool
     {
         if ($module === null || $module === '') {
@@ -65,5 +80,55 @@ class TenantModules
         }
 
         return $tenant->hasModuleEnabled($module);
+    }
+
+    public function currentTenantSort(?string $module, ?int $defaultSort = null): ?int
+    {
+        return $this->tenantSort(app(CurrentTenant::class)->get(), $module, $defaultSort);
+    }
+
+    public function tenantSort(?Tenant $tenant, ?string $module, ?int $defaultSort = null): ?int
+    {
+        if ($module === null || $module === '') {
+            return $defaultSort;
+        }
+
+        if (! $tenant) {
+            return $defaultSort;
+        }
+
+        $moduleOrder = $this->normalizeModuleList($tenant->module_order);
+
+        if ($moduleOrder === []) {
+            return $defaultSort;
+        }
+
+        $configuredSort = $tenant->getModuleSort($module);
+
+        if ($configuredSort !== null) {
+            return $configuredSort;
+        }
+
+        $standardPosition = array_search($module, self::standardOrder(), true);
+
+        return ((count($moduleOrder) + 1) * 1000)
+            + ($standardPosition === false ? 900 : (($standardPosition + 1) * 10));
+    }
+
+    /**
+     * @param  mixed  $modules
+     * @return array<int, string>
+     */
+    public function normalizeModuleList(mixed $modules): array
+    {
+        if (! is_array($modules)) {
+            return [];
+        }
+
+        return collect($modules)
+            ->filter(fn (mixed $module): bool => is_string($module) && array_key_exists($module, self::options()))
+            ->unique()
+            ->values()
+            ->all();
     }
 }

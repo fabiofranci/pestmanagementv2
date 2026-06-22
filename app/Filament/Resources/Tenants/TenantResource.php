@@ -37,6 +37,14 @@ class TenantResource extends Resource
         return static::canViewAny();
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return app(TenantModules::class)->currentTenantSort(
+            TenantModules::ORGANIZATIONS,
+            parent::getNavigationSort(),
+        );
+    }
+
     public static function canViewAny(): bool
     {
         return auth()->user() instanceof User

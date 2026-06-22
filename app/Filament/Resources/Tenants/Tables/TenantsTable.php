@@ -79,6 +79,20 @@ class TenantsTable
                             ->implode(', ');
                     })
                     ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('module_order')
+                    ->label('Ordine menu')
+                    ->formatStateUsing(function (?array $state): string {
+                        if (! is_array($state) || $state === []) {
+                            return 'Standard';
+                        }
+
+                        $options = TenantModules::options();
+
+                        return collect($state)
+                            ->map(fn (string $module): string => $options[$module] ?? $module)
+                            ->implode(', ');
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('Stato')
                     ->searchable(),

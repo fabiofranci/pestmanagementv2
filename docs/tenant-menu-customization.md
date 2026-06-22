@@ -2,7 +2,7 @@
 
 Data aggiornamento: 2026-06-22
 
-Pest Management V2 permette di personalizzare i moduli visibili nel menu Filament in base al tenant corrente.
+Pest Management V2 permette di personalizzare i moduli visibili nel menu Filament e il loro ordine in base al tenant corrente.
 
 La configurazione vive nel database centrale, nella tabella `tenants`.
 
@@ -26,6 +26,41 @@ Regola di compatibilita:
 - se `enabled_modules` e un array vuoto, tutti i moduli sono visibili;
 - se contiene valori, sono visibili solo i moduli indicati.
 
+## Campo `module_order`
+
+Campo:
+
+```text
+tenants.module_order
+```
+
+Tipo:
+
+```text
+JSON nullable
+```
+
+Regole:
+
+- `enabled_modules` decide se un modulo e visibile;
+- `module_order` decide l'ordine delle voci visibili;
+- `module_order` si gestisce nel form tenant con una lista ordinabile;
+- se `module_order` e `null` o vuoto, Filament mantiene l'ordine standard attuale;
+- se contiene valori, i moduli indicati vengono ordinati prima seguendo l'array;
+- i moduli non presenti in `module_order` finiscono dopo quelli configurati, mantenendo l'ordine standard.
+
+Nel form ogni riga della lista contiene una select `Modulo`. Il dato salvato resta un JSON semplice:
+
+```json
+[
+  "dashboard",
+  "contracts",
+  "customers"
+]
+```
+
+Non viene salvato un array di oggetti.
+
 ## Moduli Disponibili
 
 Stringhe stabili disponibili:
@@ -46,7 +81,14 @@ Queste chiavi sono definite in `App\Support\Tenancy\TenantModules`.
 
 ## Esempio Demo
 
-Tenant demo con tutti i moduli esplicitati:
+Tenant demo con tutti i moduli visibili usando il comportamento compatibile:
+
+```text
+enabled_modules = null
+module_order = null
+```
+
+In alternativa, lista completa esplicita:
 
 ```json
 [
@@ -62,38 +104,35 @@ Tenant demo con tutti i moduli esplicitati:
 ]
 ```
 
-In alternativa si puo lasciare `enabled_modules = null` per ottenere lo stesso effetto con comportamento compatibile.
+La stessa lista puo essere usata anche in `module_order` se si vuole rendere esplicito l'ordine completo.
 
 ## Esempio AZ
 
-Configurazione possibile per AZ, orientata al lavoro su clienti, sedi, contratti e impianti:
+Configurazione possibile per AZ, orientata al lavoro su contratti e anagrafiche collegate:
+
+`enabled_modules`:
 
 ```json
 [
   "dashboard",
-  "customers",
-  "customer_sites",
   "contracts",
-  "areas",
-  "monitoring_points",
-  "service_types",
-  "pest_types",
-  "organizations"
+  "customer_sites",
+  "customers"
 ]
 ```
 
-Se AZ non deve vedere i cataloghi nel menu operativo, si puo usare:
+`module_order`:
 
 ```json
 [
   "dashboard",
-  "customers",
-  "customer_sites",
   "contracts",
-  "areas",
-  "monitoring_points"
+  "customer_sites",
+  "customers"
 ]
 ```
+
+Questa configurazione non hardcoda AZ nel codice: e solo una configurazione del record tenant.
 
 ## Superuser Senza Tenant
 

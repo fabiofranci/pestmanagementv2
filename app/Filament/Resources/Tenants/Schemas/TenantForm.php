@@ -6,6 +6,7 @@ use App\Models\Tenant;
 use App\Support\Filament\PanelAppearance;
 use App\Support\Tenancy\TenantModules;
 use Filament\Forms\Components\CheckboxList;
+use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -114,6 +115,26 @@ class TenantForm
                             ->options(TenantModules::options())
                             ->columns(3)
                             ->helperText('Seleziona solo i moduli da mostrare nel menu per questo tenant. Il menu non sostituisce i controlli di sicurezza.'),
+                        Repeater::make('module_order')
+                            ->label('Ordine moduli')
+                            ->reorderable()
+                            ->addActionLabel('Aggiungi modulo')
+                            ->defaultItems(0)
+                            ->simple(
+                                Select::make('module')
+                                    ->label('Modulo')
+                                    ->options(TenantModules::options())
+                                    ->disableOptionsWhenSelectedInSiblingRepeaterItems()
+                                    ->native(false)
+                                    ->required(),
+                            )
+                            ->mutateDehydratedStateUsing(fn (?array $state): array => collect($state ?? [])
+                                ->map(fn (mixed $item): mixed => is_array($item) ? ($item['module'] ?? null) : $item)
+                                ->filter(fn (mixed $module): bool => is_string($module) && array_key_exists($module, TenantModules::options()))
+                                ->unique()
+                                ->values()
+                                ->all())
+                            ->helperText("Trascina i moduli per definire l'ordine del menu. I moduli non indicati vengono mostrati dopo quelli configurati."),
                     ]),
             ]);
     }

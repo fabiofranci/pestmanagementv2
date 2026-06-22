@@ -25,6 +25,14 @@ abstract class TenantScopedResource extends Resource
         return parent::shouldRegisterNavigation() && static::canAccess();
     }
 
+    public static function getNavigationSort(): ?int
+    {
+        return app(TenantModules::class)->currentTenantSort(
+            static::$tenantModule,
+            parent::getNavigationSort(),
+        );
+    }
+
     public static function canAccess(): bool
     {
         if (! app(CurrentTenant::class)->hasTenant()) {
