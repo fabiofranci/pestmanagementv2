@@ -9,6 +9,7 @@ use App\Filament\Resources\MonitoringPoints\Schemas\MonitoringPointForm;
 use App\Filament\Resources\MonitoringPoints\Tables\MonitoringPointsTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\MonitoringPoint;
+use App\Support\Tenancy\TenantModules;
 use BackedEnum;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -19,6 +20,8 @@ class MonitoringPointResource extends TenantScopedResource
     protected static ?string $model = MonitoringPoint::class;
 
     protected static bool $allowsCustomerUsers = true;
+
+    protected static ?string $tenantModule = TenantModules::MONITORING_POINTS;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

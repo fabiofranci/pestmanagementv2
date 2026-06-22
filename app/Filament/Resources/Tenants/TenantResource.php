@@ -9,6 +9,7 @@ use App\Filament\Resources\Tenants\Schemas\TenantForm;
 use App\Filament\Resources\Tenants\Tables\TenantsTable;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Tenancy\TenantModules;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -39,7 +40,8 @@ class TenantResource extends Resource
     public static function canViewAny(): bool
     {
         return auth()->user() instanceof User
-            && auth()->user()->isSuperuser();
+            && auth()->user()->isSuperuser()
+            && app(TenantModules::class)->currentTenantHas(TenantModules::ORGANIZATIONS);
     }
 
     public static function canCreate(): bool

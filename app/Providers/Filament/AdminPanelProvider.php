@@ -3,6 +3,7 @@
 namespace App\Providers\Filament;
 
 use App\Filament\Resources\Tenants\TenantResource;
+use App\Filament\Pages\Dashboard;
 use App\Http\Controllers\Auth\TenantLoginController;
 use App\Http\Middleware\AuthenticatePanel;
 use App\Http\Middleware\AuthenticatePanelSession;
@@ -14,7 +15,6 @@ use Filament\Actions\Action;
 use Filament\FontProviders\GoogleFontProvider;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Assets\Theme;
@@ -72,7 +72,7 @@ class AdminPanelProvider extends PanelProvider
                 Action::make('tenantDirectory')
                     ->label('Tutti i tenant')
                     ->url(fn (): string => TenantResource::getUrl('index'))
-                    ->visible(fn (): bool => auth()->user() instanceof User && auth()->user()->isSuperuser())
+                    ->visible(fn (): bool => TenantResource::canAccess())
                     ->sort(11),
                 Action::make('leaveTenant')
                     ->label('Esci dal tenant')

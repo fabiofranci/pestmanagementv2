@@ -9,6 +9,7 @@ use App\Filament\Resources\ServiceTypes\Schemas\ServiceTypeForm;
 use App\Filament\Resources\ServiceTypes\Tables\ServiceTypesTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\ServiceType;
+use App\Support\Tenancy\TenantModules;
 use BackedEnum;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -17,6 +18,8 @@ use Filament\Tables\Table;
 class ServiceTypeResource extends TenantScopedResource
 {
     protected static ?string $model = ServiceType::class;
+
+    protected static ?string $tenantModule = TenantModules::SERVICE_TYPES;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

@@ -8,6 +8,7 @@ use App\Models\Tenant;
 use App\Support\Filament\PanelAppearance;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantConnectionManager;
+use App\Support\Tenancy\TenantModules;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -64,6 +65,20 @@ class TenantsTable
                     ->label('Servizi contratto')
                     ->formatStateUsing(fn (?string $state): string => Tenant::contractServiceModeOptions()[$state] ?? Tenant::contractServiceModeOptions()[Tenant::CONTRACT_SERVICE_MODE_MULTIPLE])
                     ->badge(),
+                TextColumn::make('enabled_modules')
+                    ->label('Moduli')
+                    ->formatStateUsing(function (?array $state): string {
+                        if (! is_array($state) || $state === []) {
+                            return 'Tutti';
+                        }
+
+                        $options = TenantModules::options();
+
+                        return collect($state)
+                            ->map(fn (string $module): string => $options[$module] ?? $module)
+                            ->implode(', ');
+                    })
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('Stato')
                     ->searchable(),

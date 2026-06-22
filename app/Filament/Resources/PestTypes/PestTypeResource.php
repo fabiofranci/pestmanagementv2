@@ -9,6 +9,7 @@ use App\Filament\Resources\PestTypes\Schemas\PestTypeForm;
 use App\Filament\Resources\PestTypes\Tables\PestTypesTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\PestType;
+use App\Support\Tenancy\TenantModules;
 use BackedEnum;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -17,6 +18,8 @@ use Filament\Tables\Table;
 class PestTypeResource extends TenantScopedResource
 {
     protected static ?string $model = PestType::class;
+
+    protected static ?string $tenantModule = TenantModules::PEST_TYPES;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

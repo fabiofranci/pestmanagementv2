@@ -11,6 +11,7 @@ use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\Customer;
 use App\Models\User;
+use App\Support\Tenancy\TenantModules;
 use BackedEnum;
 use Filament\Actions\ActionGroup;
 use Filament\Schemas\Schema;
@@ -22,6 +23,8 @@ class CustomerResource extends TenantScopedResource
     protected static ?string $model = Customer::class;
 
     protected static bool $allowsCustomerUsers = true;
+
+    protected static ?string $tenantModule = TenantModules::CUSTOMERS;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

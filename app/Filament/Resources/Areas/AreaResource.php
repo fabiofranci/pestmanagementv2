@@ -9,6 +9,7 @@ use App\Filament\Resources\Areas\Schemas\AreaForm;
 use App\Filament\Resources\Areas\Tables\AreasTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\Area;
+use App\Support\Tenancy\TenantModules;
 use BackedEnum;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
@@ -19,6 +20,8 @@ class AreaResource extends TenantScopedResource
     protected static ?string $model = Area::class;
 
     protected static bool $allowsCustomerUsers = true;
+
+    protected static ?string $tenantModule = TenantModules::AREAS;
 
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 

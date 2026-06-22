@@ -9,6 +9,7 @@ use App\Models\CustomerSite;
 use App\Models\MonitoringPoint;
 use App\Models\User;
 use App\Support\Tenancy\CurrentTenant;
+use App\Support\Tenancy\TenantModules;
 use Filament\Resources\Resource;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,8 @@ use Illuminate\Database\Eloquent\Model;
 abstract class TenantScopedResource extends Resource
 {
     protected static bool $allowsCustomerUsers = false;
+
+    protected static ?string $tenantModule = null;
 
     public static function shouldRegisterNavigation(): bool
     {
@@ -25,6 +28,10 @@ abstract class TenantScopedResource extends Resource
     public static function canAccess(): bool
     {
         if (! app(CurrentTenant::class)->hasTenant()) {
+            return false;
+        }
+
+        if (! static::isTenantModuleEnabled()) {
             return false;
         }
 
@@ -119,5 +126,10 @@ abstract class TenantScopedResource extends Resource
     protected static function isCustomerPortalUser(): bool
     {
         return static::currentUser()?->isTenantCustomer() ?? false;
+    }
+
+    protected static function isTenantModuleEnabled(): bool
+    {
+        return app(TenantModules::class)->currentTenantHas(static::$tenantModule);
     }
 }

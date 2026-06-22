@@ -18,6 +18,7 @@ class Tenant extends Model
         'slug',
         'domain',
         'contract_service_mode',
+        'enabled_modules',
         'db_host',
         'db_port',
         'db_database',
@@ -33,6 +34,7 @@ class Tenant extends Model
     {
         return [
             'db_password' => 'encrypted',
+            'enabled_modules' => 'array',
         ];
     }
 
@@ -59,6 +61,17 @@ class Tenant extends Model
     public function allowsMultipleContractServices(): bool
     {
         return $this->contractServiceMode() === self::CONTRACT_SERVICE_MODE_MULTIPLE;
+    }
+
+    public function hasModuleEnabled(string $module): bool
+    {
+        $enabledModules = $this->enabled_modules;
+
+        if (! is_array($enabledModules) || $enabledModules === []) {
+            return true;
+        }
+
+        return in_array($module, $enabledModules, true);
     }
 
     public function customers()

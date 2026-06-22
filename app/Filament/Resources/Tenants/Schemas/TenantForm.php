@@ -4,6 +4,8 @@ namespace App\Filament\Resources\Tenants\Schemas;
 
 use App\Models\Tenant;
 use App\Support\Filament\PanelAppearance;
+use App\Support\Tenancy\TenantModules;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Components\Section;
@@ -103,6 +105,15 @@ class TenantForm
                             ->native(false)
                             ->required()
                             ->helperText('Usa "un solo servizio" per tenant come AZ. Il default del prodotto resta multi-servizio.'),
+                    ]),
+                Section::make('Moduli menu')
+                    ->description('Lascia vuoto per rendere visibili tutti i moduli, mantenendo compatibilita con i tenant esistenti.')
+                    ->schema([
+                        CheckboxList::make('enabled_modules')
+                            ->label('Moduli abilitati')
+                            ->options(TenantModules::options())
+                            ->columns(3)
+                            ->helperText('Seleziona solo i moduli da mostrare nel menu per questo tenant. Il menu non sostituisce i controlli di sicurezza.'),
                     ]),
             ]);
     }
