@@ -11,11 +11,11 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Notifications\Notification;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -87,8 +87,13 @@ class ContractServicesRelationManager extends RelationManager
                 Select::make('operational_frequency')
                     ->label('Cadenza operativa')
                     ->options([
+                        'weekly' => 'Settimanale',
+                        'fortnightly' => 'Quindicinale',
                         'monthly' => 'Mensile',
+                        'bimonthly' => 'Bimestrale',
                         'quarterly' => 'Trimestrale',
+                        'four_monthly' => 'Quadrimestrale',
+                        'six_monthly' => 'Semestrale',
                         'yearly' => 'Annuale',
                         'one_time' => 'Una tantum',
                     ])
@@ -97,8 +102,13 @@ class ContractServicesRelationManager extends RelationManager
                 Select::make('billing_frequency')
                     ->label('Cadenza fatturazione')
                     ->options([
+                        'weekly' => 'Settimanale',
+                        'fortnightly' => 'Quindicinale',
                         'monthly' => 'Mensile',
+                        'bimonthly' => 'Bimestrale',
                         'quarterly' => 'Trimestrale',
+                        'four_monthly' => 'Quadrimestrale',
+                        'six_monthly' => 'Semestrale',
                         'yearly' => 'Annuale',
                         'one_time' => 'Unica soluzione',
                     ])
@@ -162,8 +172,13 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Cadenza operativa')
                     ->state(fn ($record): ?string => $record->operational_frequency ?: $record->frequency)
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'weekly' => 'Settimanale',
+                        'fortnightly' => 'Quindicinale',
                         'monthly' => 'Mensile',
+                        'bimonthly' => 'Bimestrale',
                         'quarterly' => 'Trimestrale',
+                        'four_monthly' => 'Quadrimestrale',
+                        'six_monthly' => 'Semestrale',
                         'yearly' => 'Annuale',
                         'one_time' => 'Una tantum',
                         default => $state ?: '-',
@@ -172,8 +187,13 @@ class ContractServicesRelationManager extends RelationManager
                 TextColumn::make('billing_frequency')
                     ->label('Cadenza fatturazione')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'weekly' => 'Settimanale',
+                        'fortnightly' => 'Quindicinale',
                         'monthly' => 'Mensile',
+                        'bimonthly' => 'Bimestrale',
                         'quarterly' => 'Trimestrale',
+                        'four_monthly' => 'Quadrimestrale',
+                        'six_monthly' => 'Semestrale',
                         'yearly' => 'Annuale',
                         'one_time' => 'Unica soluzione',
                         default => $state ?: '-',

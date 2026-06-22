@@ -2,6 +2,8 @@
 
 namespace App\Filament\Resources\Contracts\RelationManagers;
 
+use App\Models\ContractBillingSchedule;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -49,8 +51,7 @@ class ContractBillingSchedulesRelationManager extends RelationManager
                     ->label('Stato')
                     ->options([
                         'planned' => 'Pianificata',
-                        'issued' => 'Emessa',
-                        'paid' => 'Pagata',
+                        'invoiced' => 'Fatturata',
                         'cancelled' => 'Annullata',
                     ])
                     ->default('planned')
@@ -80,6 +81,11 @@ class ContractBillingSchedulesRelationManager extends RelationManager
                     ->label('Importo')
                     ->money(fn ($record): string => $record->currency ?: 'EUR')
                     ->sortable(),
+                TextColumn::make('vat_rate')
+                    ->label('IVA %')
+                    ->numeric(decimalPlaces: 2)
+                    ->placeholder('-')
+                    ->toggleable(),
                 TextColumn::make('currency')
                     ->label('Valuta')
                     ->toggleable(isToggledHiddenByDefault: true),
@@ -87,6 +93,7 @@ class ContractBillingSchedulesRelationManager extends RelationManager
                     ->label('Stato')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'planned' => 'Pianificata',
+                        'invoiced' => 'Fatturata',
                         'issued' => 'Emessa',
                         'paid' => 'Pagata',
                         'cancelled' => 'Annullata',
@@ -95,6 +102,7 @@ class ContractBillingSchedulesRelationManager extends RelationManager
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
                         'planned' => 'gray',
+                        'invoiced' => 'success',
                         'issued' => 'info',
                         'paid' => 'success',
                         'cancelled' => 'danger',
@@ -105,14 +113,18 @@ class ContractBillingSchedulesRelationManager extends RelationManager
                     ->label('Rif. fattura')
                     ->placeholder('-')
                     ->searchable(),
+                TextColumn::make('notes')
+                    ->label('Note')
+                    ->limit(50)
+                    ->placeholder('-')
+                    ->toggleable(),
             ])
             ->filters([
                 SelectFilter::make('status')
                     ->label('Stato')
                     ->options([
                         'planned' => 'Pianificata',
-                        'issued' => 'Emessa',
-                        'paid' => 'Pagata',
+                        'invoiced' => 'Fatturata',
                         'cancelled' => 'Annullata',
                     ])
                     ->native(false),
@@ -123,6 +135,19 @@ class ContractBillingSchedulesRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('markInvoiced')
+                    ->label('Segna fatturata')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->visible(fn (ContractBillingSchedule $record): bool => ! in_array($record->status, ['invoiced', 'cancelled'], true))
+                    ->action(fn (ContractBillingSchedule $record): bool => $record->update(['status' => 'invoiced'])),
+                Action::make('markCancelled')
+                    ->label('Segna annullata')
+                    ->icon('heroicon-o-x-circle')
+                    ->color('warning')
+                    ->requiresConfirmation()
+                    ->visible(fn (ContractBillingSchedule $record): bool => $record->status !== 'cancelled')
+                    ->action(fn (ContractBillingSchedule $record): bool => $record->update(['status' => 'cancelled'])),
                 DeleteAction::make(),
             ])
             ->toolbarActions([

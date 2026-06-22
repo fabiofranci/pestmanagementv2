@@ -63,6 +63,18 @@ class ContractsTable
                     ->label('Valore totale')
                     ->money(fn ($record): string => $record->currency ?: 'EUR')
                     ->sortable(),
+                TextColumn::make('scheduled_interventions_count')
+                    ->label('Interventi')
+                    ->state(fn ($record): int => $record->scheduledInterventions()->count())
+                    ->badge()
+                    ->color('info')
+                    ->sortable(false),
+                TextColumn::make('planned_billing_schedules_count')
+                    ->label('Scadenze')
+                    ->state(fn ($record): int => $record->billingSchedules()->where('status', 'planned')->count())
+                    ->badge()
+                    ->color('warning')
+                    ->sortable(false),
                 TextColumn::make('payment_terms')
                     ->label('Condizioni pagamento')
                     ->searchable()

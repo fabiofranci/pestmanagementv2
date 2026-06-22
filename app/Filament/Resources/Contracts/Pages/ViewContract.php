@@ -11,6 +11,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
+use Throwable;
 
 class ViewContract extends ViewRecord
 {
@@ -21,8 +22,10 @@ class ViewContract extends ViewRecord
         return [
             EditAction::make(),
             $this->addManualEventAction(),
-            $this->generateScheduledInterventionsAction(),
-            $this->generateBillingScheduleAction(),
+            $this->generateInterventionsAction(),
+            $this->regenerateInterventionsAction(),
+            $this->generateBillingSchedulesAction(),
+            $this->regenerateBillingSchedulesAction(),
             $this->closeContractAction(),
             $this->reactivateContractAction(),
         ];
@@ -68,63 +71,119 @@ class ViewContract extends ViewRecord
             });
     }
 
-    protected function generateScheduledInterventionsAction(): Action
+    protected function generateInterventionsAction(): Action
     {
-        return Action::make('generateScheduledInterventions')
-            ->label('Genera interventi programmati')
+        return Action::make('generateInterventions')
+            ->label('Genera interventi')
             ->color('info')
-            ->requiresConfirmation()
             ->modalHeading('Genera interventi programmati')
             ->modalDescription('Crea solo interventi programmati dal contratto. Non crea work order, visite o ispezioni.')
             ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
             ->action(function (): void {
-                $result = app(ContractProgrammingService::class)
-                    ->generateScheduledInterventions($this->getRecord(), auth()->id());
-
-                $this->record = $this->getRecord()->refresh();
-
-                $notification = Notification::make()
-                    ->title('Generazione interventi completata')
-                    ->body("Interventi creati: {$result['created']}. Record saltati: {$result['skipped']}.");
-
-                ($result['created'] > 0 ? $notification->success() : $notification->warning())->send();
+                $this->runScheduledInterventionsGeneration(false);
             });
     }
 
-    protected function generateBillingScheduleAction(): Action
+    protected function regenerateInterventionsAction(): Action
     {
-        return Action::make('generateBillingSchedule')
-            ->label('Genera piano fatturazione')
-            ->color('info')
+        return Action::make('regenerateInterventions')
+            ->label('Rigenera interventi')
+            ->color('warning')
             ->requiresConfirmation()
-            ->modalHeading('Genera piano fatturazione')
-            ->modalDescription('Crea solo scadenze previste del contratto. Non crea fatture fiscali o invii elettronici.')
-            ->schema([
-                Select::make('frequency')
-                    ->label('Modalita')
-                    ->options([
-                        'one_time' => 'Unica soluzione',
-                        'monthly' => 'Mensile',
-                        'quarterly' => 'Trimestrale',
-                        'yearly' => 'Annuale',
-                    ])
-                    ->default(fn (): string => $this->getRecord()->service()->value('billing_frequency') ?: 'one_time')
-                    ->native(false)
-                    ->required(),
-            ])
+            ->modalHeading('Rigenera interventi programmati')
+            ->modalDescription('Elimina gli interventi planned futuri del contratto e li ricrea dalle cadenze operative. Non tocca work order, visite o ispezioni.')
             ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
-            ->action(function (array $data): void {
-                $result = app(ContractProgrammingService::class)
-                    ->generateBillingSchedule($this->getRecord(), $data['frequency'], auth()->id());
-
-                $this->record = $this->getRecord()->refresh();
-
-                $notification = Notification::make()
-                    ->title('Generazione piano fatturazione completata')
-                    ->body("Scadenze create: {$result['created']}. Record saltati: {$result['skipped']}.");
-
-                ($result['created'] > 0 ? $notification->success() : $notification->warning())->send();
+            ->action(function (): void {
+                $this->runScheduledInterventionsGeneration(true);
             });
+    }
+
+    protected function generateBillingSchedulesAction(): Action
+    {
+        return Action::make('generateBillingSchedules')
+            ->label('Genera scadenze fatturazione')
+            ->color('info')
+            ->modalHeading('Genera scadenze fatturazione')
+            ->modalDescription('Crea solo scadenze previste del contratto. Non crea fatture fiscali o invii elettronici.')
+            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
+            ->action(function (): void {
+                $this->runBillingSchedulesGeneration(false);
+            });
+    }
+
+    protected function regenerateBillingSchedulesAction(): Action
+    {
+        return Action::make('regenerateBillingSchedules')
+            ->label('Rigenera scadenze fatturazione')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('Rigenera scadenze fatturazione')
+            ->modalDescription('Elimina le scadenze planned non fatturate del contratto e le ricrea dalla cadenza di fatturazione.')
+            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()))
+            ->action(function (): void {
+                $this->runBillingSchedulesGeneration(true);
+            });
+    }
+
+    protected function runScheduledInterventionsGeneration(bool $replace): void
+    {
+        try {
+            $service = app(ContractProgrammingService::class);
+            $created = $service->generateScheduledInterventions($this->getRecord(), $replace, auth()->id());
+            $result = $service->lastResult();
+
+            $this->record = $this->getRecord()->refresh();
+
+            $notification = Notification::make()
+                ->title($replace ? 'Rigenerazione interventi completata' : 'Generazione interventi completata')
+                ->body($this->generationBody('Interventi creati', $created, 'Interventi eliminati', $result));
+
+            ($created > 0 ? $notification->success() : $notification->warning())->send();
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->danger()
+                ->title('Generazione interventi fallita')
+                ->body($exception->getMessage())
+                ->send();
+        }
+    }
+
+    protected function runBillingSchedulesGeneration(bool $replace): void
+    {
+        try {
+            $service = app(ContractProgrammingService::class);
+            $created = $service->generateBillingSchedules($this->getRecord(), $replace, auth()->id());
+            $result = $service->lastResult();
+
+            $this->record = $this->getRecord()->refresh();
+
+            $notification = Notification::make()
+                ->title($replace ? 'Rigenerazione scadenze completata' : 'Generazione scadenze completata')
+                ->body($this->generationBody('Scadenze create', $created, 'Scadenze eliminate', $result));
+
+            ($created > 0 ? $notification->success() : $notification->warning())->send();
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->danger()
+                ->title('Generazione scadenze fallita')
+                ->body($exception->getMessage())
+                ->send();
+        }
+    }
+
+    /**
+     * @param  array{skipped: int, deleted: int, skipped_records: array<int, array<string, mixed>>}  $result
+     */
+    protected function generationBody(string $createdLabel, int $created, string $deletedLabel, array $result): string
+    {
+        $body = "{$createdLabel}: {$created}. {$deletedLabel}: {$result['deleted']}. Record saltati: {$result['skipped']}.";
+        $reasons = collect($result['skipped_records'])
+            ->pluck('reason')
+            ->filter()
+            ->unique()
+            ->implode(', ');
+
+        return $reasons ? "{$body} Motivi: {$reasons}." : $body;
     }
 
     protected function closeContractAction(): Action

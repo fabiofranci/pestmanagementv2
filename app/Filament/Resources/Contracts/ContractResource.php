@@ -210,8 +210,13 @@ class ContractResource extends TenantScopedResource
     protected static function formatFrequency(?string $frequency, string $oneTimeLabel = 'Una tantum'): string
     {
         return match ($frequency) {
+            'weekly' => 'Settimanale',
+            'fortnightly' => 'Quindicinale',
             'monthly' => 'Mensile',
+            'bimonthly' => 'Bimestrale',
             'quarterly' => 'Trimestrale',
+            'four_monthly' => 'Quadrimestrale',
+            'six_monthly' => 'Semestrale',
             'yearly' => 'Annuale',
             'one_time' => $oneTimeLabel,
             default => $frequency ?: '-',
