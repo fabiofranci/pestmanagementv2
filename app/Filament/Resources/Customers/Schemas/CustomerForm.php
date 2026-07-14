@@ -29,6 +29,7 @@ class CustomerForm
                                 ignoreRecord: true,
                                 modifyQueryUsing: fn ($query) => $query->where('tenant_id', app(CurrentTenant::class)->id()),
                             )
+                            ->dehydrateStateUsing(fn (?string $state): ?string => filled($state) ? trim($state) : null)
                             ->maxLength(50),
                         Grid::make(2)
                             ->schema([
