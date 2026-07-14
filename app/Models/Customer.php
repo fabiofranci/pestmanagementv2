@@ -35,6 +35,19 @@ class Customer extends Model
         'status',
     ];
 
+    protected static function booted(): void
+    {
+        static::saving(function (Customer $customer): void {
+            if (
+                $customer->isDirty('vat_number')
+                || $customer->isDirty('fiscal_code')
+                || blank($customer->tax_id)
+            ) {
+                $customer->tax_id = $customer->vat_number ?: $customer->fiscal_code ?: $customer->tax_id;
+            }
+        });
+    }
+
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);

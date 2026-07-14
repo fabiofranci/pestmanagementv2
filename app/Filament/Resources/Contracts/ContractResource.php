@@ -113,6 +113,9 @@ class ContractResource extends TenantScopedResource
                     ->columns(3),
                 Section::make('Cliente e sede')
                     ->schema([
+                        TextEntry::make('customer.legacy_customer_code')
+                            ->label('Cod. cliente AZ')
+                            ->placeholder('-'),
                         TextEntry::make('customer.name')
                             ->label('Cliente'),
                         TextEntry::make('site.name')
@@ -121,7 +124,7 @@ class ContractResource extends TenantScopedResource
                             ->label('Indirizzo')
                             ->placeholder('-'),
                     ])
-                    ->columns(3),
+                    ->columns(4),
                 Section::make('Riepilogo operativo')
                     ->schema([
                         TextEntry::make('contract_services_summary')

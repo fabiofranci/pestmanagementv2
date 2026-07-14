@@ -24,6 +24,11 @@ class ContractsTable
                     ->label('Numero contratto')
                     ->searchable()
                     ->sortable(),
+                TextColumn::make('customer.legacy_customer_code')
+                    ->label('Cod. AZ')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('customer.name')
                     ->label('Cliente')
                     ->searchable(),
@@ -120,10 +125,7 @@ class ContractsTable
                     ->native(false),
                 SelectFilter::make('customer_id')
                     ->label('Cliente')
-                    ->options(fn (): array => Customer::query()
-                        ->orderBy('name')
-                        ->pluck('name', 'id')
-                        ->all())
+                    ->options(fn (): array => static::customerOptions())
                     ->searchable()
                     ->preload()
                     ->native(false),
@@ -148,5 +150,25 @@ class ContractsTable
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    protected static function customerOptions(): array
+    {
+        return Customer::query()
+            ->orderBy('name')
+            ->get(['id', 'name', 'legacy_customer_code'])
+            ->mapWithKeys(fn (Customer $customer): array => [
+                $customer->getKey() => static::customerOptionLabel($customer),
+            ])
+            ->all();
+    }
+
+    protected static function customerOptionLabel(Customer $customer): string
+    {
+        if (filled($customer->legacy_customer_code)) {
+            return "{$customer->legacy_customer_code} - {$customer->name}";
+        }
+
+        return $customer->name;
     }
 }

@@ -16,42 +16,83 @@ class CustomersTable
     {
         return $table
             ->columns([
+                TextColumn::make('legacy_customer_code')
+                    ->label('Cod. AZ')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->sortable(),
+                TextColumn::make('legal_name')
+                    ->label('Rag. sociale')
+                    ->placeholder('-')
+                    ->searchable(),
                 TextColumn::make('name')
                     ->label('Nome')
                     ->searchable(),
-                TextColumn::make('legal_name')
-                    ->label('Ragione sociale')
+                TextColumn::make('vat_number')
+                    ->label('P. IVA')
+                    ->placeholder('-')
                     ->searchable(),
-                TextColumn::make('tax_id')
-                    ->label('Partita IVA / Codice fiscale')
+                TextColumn::make('fiscal_code')
+                    ->label('Cod. fisc.')
+                    ->placeholder('-')
                     ->searchable(),
                 TextColumn::make('email')
-                    ->label('Email')
+                    ->label('E-mail')
                     ->searchable(),
                 TextColumn::make('portal_access_email')
                     ->label('Accesso area riservata')
                     ->placeholder('Non configurato')
                     ->state(fn ($record): ?string => app(CustomerPortalUserManager::class)->getUser($record)?->email),
                 TextColumn::make('phone')
-                    ->label('Telefono')
+                    ->label('Tel.')
+                    ->searchable(),
+                TextColumn::make('mobile')
+                    ->label('Cell.')
+                    ->placeholder('-')
                     ->searchable(),
                 TextColumn::make('address')
                     ->label('Indirizzo')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('city')
                     ->label('Città')
                     ->searchable(),
                 TextColumn::make('postcode')
                     ->label('CAP')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('province')
                     ->label('Provincia')
-                    ->searchable(),
-                TextColumn::make('country')
-                    ->label('Paese')
-                    ->searchable(),
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('pec')
+                    ->label('PEC')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('sdi_code')
+                    ->label('SDI')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('secondary_phone')
+                    ->label('Tel. 2')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(isToggledHiddenByDefault: true),
                 TextColumn::make('status')
                     ->label('Stato')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'active' => 'Attivo',
+                        'inactive' => 'Inattivo',
+                        default => $state ?: '-',
+                    })
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'active' => 'success',
+                        'inactive' => 'gray',
+                        default => 'gray',
+                    })
                     ->searchable(),
                 TextColumn::make('created_at')
                     ->label('Creato il')
