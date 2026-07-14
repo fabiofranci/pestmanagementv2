@@ -14,11 +14,18 @@ class Customer extends Model
 
     protected $fillable = [
         'tenant_id',
+        'legacy_customer_code',
         'name',
         'legal_name',
         'tax_id',
+        'vat_number',
+        'fiscal_code',
         'email',
         'phone',
+        'secondary_phone',
+        'mobile',
+        'pec',
+        'sdi_code',
         'address',
         'city',
         'postcode',
