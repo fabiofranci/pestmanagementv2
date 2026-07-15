@@ -74,6 +74,7 @@ contracts
 areas
 monitoring_points
 service_types
+billable_items
 pest_types
 organizations
 ```
@@ -101,6 +102,7 @@ In alternativa, lista completa esplicita:
   "areas",
   "monitoring_points",
   "service_types",
+  "billable_items",
   "pest_types",
   "organizations"
 ]
@@ -121,7 +123,8 @@ Configurazione possibile per AZ, orientata al lavoro su contratti e anagrafiche 
   "customer_sites",
   "customers",
   "customer_groups",
-  "service_types"
+  "service_types",
+  "billable_items"
 ]
 ```
 
@@ -134,7 +137,8 @@ Configurazione possibile per AZ, orientata al lavoro su contratti e anagrafiche 
   "customer_sites",
   "customers",
   "customer_groups",
-  "service_types"
+  "service_types",
+  "billable_items"
 ]
 ```
 

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Filament\Pages\Dashboard;
 use App\Filament\Resources\Areas\AreaResource;
+use App\Filament\Resources\BillableItems\BillableItemResource;
 use App\Filament\Resources\Contracts\ContractResource;
 use App\Filament\Resources\CustomerGroups\CustomerGroupResource;
 use App\Filament\Resources\Customers\CustomerResource;
@@ -63,6 +64,7 @@ class TenantModuleNavigationTest extends TestCase
         $this->assertFalse(AreaResource::shouldRegisterNavigation());
         $this->assertFalse(AreaResource::canAccess());
         $this->assertFalse(CustomerGroupResource::shouldRegisterNavigation());
+        $this->assertFalse(BillableItemResource::shouldRegisterNavigation());
     }
 
     public function test_customer_groups_module_respects_enabled_modules(): void
@@ -125,6 +127,39 @@ class TenantModuleNavigationTest extends TestCase
         app(CurrentTenant::class)->set($tenant);
 
         $this->assertSame(10, CustomerGroupResource::getNavigationSort());
+        $this->assertSame(20, CustomerResource::getNavigationSort());
+    }
+
+    public function test_billable_items_module_respects_enabled_modules_and_order(): void
+    {
+        $tenant = $this->createTenant(
+            enabledModules: [
+                TenantModules::CUSTOMERS,
+            ],
+            moduleOrder: [
+                TenantModules::BILLABLE_ITEMS,
+                TenantModules::CUSTOMERS,
+            ],
+        );
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(CurrentTenant::class)->set($tenant);
+
+        $this->assertFalse(BillableItemResource::shouldRegisterNavigation());
+        $this->assertFalse(BillableItemResource::canAccess());
+
+        $tenant->update([
+            'enabled_modules' => [
+                TenantModules::BILLABLE_ITEMS,
+                TenantModules::CUSTOMERS,
+            ],
+        ]);
+        app(CurrentTenant::class)->set($tenant->refresh());
+
+        $this->assertTrue(BillableItemResource::shouldRegisterNavigation());
+        $this->assertTrue(BillableItemResource::canAccess());
+        $this->assertSame(10, BillableItemResource::getNavigationSort());
         $this->assertSame(20, CustomerResource::getNavigationSort());
     }
 

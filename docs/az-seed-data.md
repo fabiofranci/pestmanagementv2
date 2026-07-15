@@ -33,7 +33,7 @@ Il comando non usa id tenant hardcoded: cerca sempre il tenant dallo slug `azdis
 Il tenant AZ viene configurato con:
 
 - `contract_service_mode = single_service`
-- moduli: `dashboard`, `contracts`, `customer_sites`, `customers`, `service_types`, `customer_groups`
+- moduli: `dashboard`, `contracts`, `customer_sites`, `customers`, `service_types`, `customer_groups`, `billable_items`
 
 Nel database tenant vengono creati o aggiornati:
 
@@ -42,6 +42,7 @@ Nel database tenant vengono creati o aggiornati:
 - sede cliente `OSTUNI` con `site_code = 1858`
 - contratti ANGIPLAST `2569`, `2570`, `2571`, `2572`, `2573`
 - un solo servizio contrattuale per ciascun contratto
+- 8 articoli fatturabili AZ con prezzi e IVA non valorizzati finche non confermati
 
 I contratti sono caricati come attivi, con rinnovo tacito, aumento rinnovo 4%, preavviso 30 giorni e valuta EUR.
 Il cliente ANGIPLAST non viene assegnato automaticamente a un gruppo: il campo resta `null` finche il dato non viene confermato.

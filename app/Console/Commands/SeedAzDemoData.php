@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Models\BillableItem;
 use App\Models\Contract;
 use App\Models\ContractService;
 use App\Models\Customer;
@@ -45,6 +46,17 @@ class SeedAzDemoData extends Command
         'Servizio contro Scarafaggi',
         'Servizio contro Pulci e Zecche',
         'Fumigazione',
+    ];
+
+    private const BILLABLE_ITEMS = [
+        'Contenitore esca',
+        'Contenitore per monitoraggio',
+        'Lampada UV',
+        'Cartello posizionamento',
+        'Paletto di fissaggio',
+        'Trappola collante',
+        'Esca',
+        'Consumabile generico',
     ];
 
     private const CONTRACTS = [
@@ -106,6 +118,7 @@ class SeedAzDemoData extends Command
 
         try {
             $serviceTypes = $this->seedServiceTypes($tenant);
+            $this->seedBillableItems($tenant);
             [$customer, $site] = $this->seedCustomerAndSite($tenant);
 
             $this->seedContracts($tenant, $customer, $site, $serviceTypes);
@@ -162,6 +175,26 @@ class SeedAzDemoData extends Command
         }
 
         return $records;
+    }
+
+    private function seedBillableItems(Tenant $tenant): void
+    {
+        foreach (self::BILLABLE_ITEMS as $name) {
+            /** @var BillableItem $billableItem */
+            $billableItem = BillableItem::query()->updateOrCreate(
+                [
+                    'tenant_id' => $tenant->getKey(),
+                    'name' => $name,
+                ],
+                $this->tenantModelValues(new BillableItem, 'billable_items', [
+                    'default_unit_price' => null,
+                    'vat_rate' => null,
+                    'status' => 'active',
+                ]),
+            );
+
+            $this->report($billableItem, "articolo fatturabile {$name}");
+        }
     }
 
     /**
@@ -327,6 +360,7 @@ class SeedAzDemoData extends Command
             TenantModules::CUSTOMERS,
             TenantModules::SERVICE_TYPES,
             TenantModules::CUSTOMER_GROUPS,
+            TenantModules::BILLABLE_ITEMS,
         ];
 
         return collect($requestedModules)

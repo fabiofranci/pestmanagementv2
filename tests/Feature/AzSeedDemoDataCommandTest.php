@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\BillableItem;
 use App\Models\Contract;
 use App\Models\ContractService;
 use App\Models\Customer;
@@ -84,6 +85,7 @@ class AzSeedDemoDataCommandTest extends TestCase
             TenantModules::CUSTOMERS,
             TenantModules::SERVICE_TYPES,
             TenantModules::CUSTOMER_GROUPS,
+            TenantModules::BILLABLE_ITEMS,
         ];
 
         $this->assertSame(Tenant::CONTRACT_SERVICE_MODE_SINGLE, $tenant->contract_service_mode);
@@ -119,6 +121,27 @@ class AzSeedDemoDataCommandTest extends TestCase
                 $expectedServiceTypes,
                 ServiceType::query()->pluck('name')->all(),
             );
+
+            $expectedBillableItems = [
+                'Contenitore esca',
+                'Contenitore per monitoraggio',
+                'Lampada UV',
+                'Cartello posizionamento',
+                'Paletto di fissaggio',
+                'Trappola collante',
+                'Esca',
+                'Consumabile generico',
+            ];
+
+            $this->assertSame(8, BillableItem::query()->count());
+            $this->assertEqualsCanonicalizing(
+                $expectedBillableItems,
+                BillableItem::query()->pluck('name')->all(),
+            );
+            $this->assertTrue(BillableItem::query()
+                ->whereNull('default_unit_price')
+                ->whereNull('vat_rate')
+                ->count() === 8);
 
             $customer = Customer::query()
                 ->where('legacy_customer_code', '1858')

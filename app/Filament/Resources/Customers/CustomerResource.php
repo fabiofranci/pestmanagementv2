@@ -6,6 +6,7 @@ use App\Filament\Actions\CustomerPortalUserActionGroup;
 use App\Filament\Resources\Customers\Pages\CreateCustomer;
 use App\Filament\Resources\Customers\Pages\EditCustomer;
 use App\Filament\Resources\Customers\Pages\ListCustomers;
+use App\Filament\Resources\Customers\RelationManagers\CustomerBillableItemPricesRelationManager;
 use App\Filament\Resources\Customers\Schemas\CustomerForm;
 use App\Filament\Resources\Customers\Tables\CustomersTable;
 use App\Filament\Resources\TenantScopedResource;
@@ -49,7 +50,7 @@ class CustomerResource extends TenantScopedResource
     public static function getRelations(): array
     {
         return [
-            //
+            CustomerBillableItemPricesRelationManager::class,
         ];
     }
 

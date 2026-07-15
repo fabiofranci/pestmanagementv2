@@ -22,6 +22,8 @@ class TenantModules
 
     public const SERVICE_TYPES = 'service_types';
 
+    public const BILLABLE_ITEMS = 'billable_items';
+
     public const PEST_TYPES = 'pest_types';
 
     public const ORGANIZATIONS = 'organizations';
@@ -37,6 +39,7 @@ class TenantModules
             self::AREAS => 'Aree',
             self::MONITORING_POINTS => 'Punti di monitoraggio',
             self::SERVICE_TYPES => 'Tipi di servizio',
+            self::BILLABLE_ITEMS => 'Articoli fatturabili',
             self::PEST_TYPES => 'Tipi di infestante',
             self::ORGANIZATIONS => 'Organizzazioni',
         ];
@@ -53,6 +56,7 @@ class TenantModules
             self::AREAS,
             self::MONITORING_POINTS,
             self::SERVICE_TYPES,
+            self::BILLABLE_ITEMS,
             self::PEST_TYPES,
             self::ORGANIZATIONS,
         ];
