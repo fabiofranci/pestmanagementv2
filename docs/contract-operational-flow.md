@@ -87,7 +87,36 @@ Il prezzo viene proposto dal catalogo articoli e dalle eventuali condizioni clie
 
 Il riepilogo contratto mostra il numero degli elementi fatturabili attivi e il totale attivo. Se non sono presenti elementi, la vista resta valida e mostra valori pari a zero.
 
-Questi elementi non generano ancora fatture XML, non modificano il piano fatturazione e non sono ancora collegati agli interventi extra.
+Questi elementi non generano ancora fatture XML, non modificano il piano fatturazione e restano separati dagli extra rilevati durante gli interventi.
+
+## Extra fatturabili interventi
+
+Gli extra rilevati durante un intervento vivono in:
+
+```text
+intervention_billable_items
+```
+
+Sono righe operative/economiche legate a uno specifico `scheduled_intervention` e al relativo contratto.
+
+Esempi AZ:
+
+- sostituito contenitore esca x 1;
+- sostituita trappola collante x 3;
+- aggiunto cartello posizionamento x 2;
+- sostituita lampada UV x 1.
+
+La scheda contratto `Extra fatturabili interventi` mostra tutti gli extra degli interventi collegati al contratto, con intervento, descrizione, articolo, quantita, prezzi, stato e scadenza collegata.
+
+Stati:
+
+- `pending`: extra inserito e ancora da collegare a una scadenza;
+- `added_to_invoice`: extra collegato a una scadenza fatturazione come preparazione amministrativa;
+- `cancelled`: extra annullato, ignorato dal collegamento alla scadenza.
+
+Quando viene scelto un articolo, il sistema propone il prezzo dal catalogo e dalle eventuali condizioni cliente. Il totale viene calcolato come `quantity * unit_price`, ma resta modificabile manualmente.
+
+Nel riepilogo operativo il contratto mostra numero e totale degli extra `pending`.
 
 ## Piano fatturazione
 
@@ -104,6 +133,18 @@ Non vengono create scadenze se:
 - date e cadenza non producono scadenze valide.
 
 `contract_services.billing_frequency` resta solo come campo legacy di compatibilita.
+
+Dal relation manager `Piano fatturazione` l'azione `Aggiungi extra pending` collega alla scadenza selezionata tutti gli `intervention_billable_items` del contratto con stato `pending`.
+
+L'azione:
+
+- non tocca extra `cancelled`;
+- non tocca extra gia `added_to_invoice`;
+- imposta `contract_billing_schedule_id`;
+- cambia lo stato in `added_to_invoice`;
+- mostra una notifica con numero extra collegati e totale.
+
+Questo collegamento e solo preparatorio: non genera righe fattura, fatture XML o integrazioni Aruba.
 
 ## Rinnovo
 

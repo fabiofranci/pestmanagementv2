@@ -6,6 +6,7 @@ use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ContractBillingSchedule extends Model
 {
@@ -34,5 +35,10 @@ class ContractBillingSchedule extends Model
     public function contract(): BelongsTo
     {
         return $this->belongsTo(Contract::class);
+    }
+
+    public function interventionBillableItems(): HasMany
+    {
+        return $this->hasMany(InterventionBillableItem::class);
     }
 }

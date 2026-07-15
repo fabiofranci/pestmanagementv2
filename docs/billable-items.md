@@ -95,13 +95,37 @@ quantity * unit_price
 
 Se l'utente modifica manualmente `unit_price`, il valore manuale viene rispettato.
 
-Gli elementi fatturabili collegati al contratto non generano ancora fatture XML, non alimentano la fatturazione elettronica e non sono ancora usati negli interventi extra.
+Gli elementi fatturabili collegati al contratto non generano ancora fatture XML, non alimentano la fatturazione elettronica e restano distinti dagli extra rilevati durante gli interventi.
+
+## Extra rilevati durante intervento
+
+Durante un intervento il tecnico puo registrare materiali sostituiti o aggiunti tramite:
+
+```text
+intervention_billable_items
+```
+
+Esempi:
+
+- sostituito contenitore esca x 1;
+- sostituita trappola collante x 3;
+- aggiunto cartello posizionamento x 2;
+- sostituita lampada UV x 1.
+
+Queste righe nascono da uno specifico `scheduled_intervention`, sono collegate al contratto e possono essere preparate per la prossima scadenza fatturazione.
+
+Stati supportati:
+
+- `pending`: extra rilevato e non ancora collegato a una scadenza;
+- `added_to_invoice`: extra collegato a una scadenza fatturazione come dato preparatorio;
+- `cancelled`: extra annullato, non da fatturare.
+
+Il collegamento a `contract_billing_schedules` non genera righe fattura vere e non produce XML.
 
 ## Uso futuro
 
-Il catalogo potra essere collegato anche a interventi per:
+Il catalogo potra essere esteso per:
 
-- valorizzare consumabili usati durante un intervento;
 - mantenere coerenza dei prezzi nel tempo;
 - applicare listini o scontistiche cliente senza duplicare servizi operativi.
 

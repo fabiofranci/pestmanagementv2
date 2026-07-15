@@ -11,6 +11,7 @@ use App\Filament\Resources\Contracts\RelationManagers\ContractBillingSchedulesRe
 use App\Filament\Resources\Contracts\RelationManagers\ContractEventsRelationManager;
 use App\Filament\Resources\Contracts\RelationManagers\ContractServicesRelationManager;
 use App\Filament\Resources\Contracts\RelationManagers\DocumentsRelationManager;
+use App\Filament\Resources\Contracts\RelationManagers\InterventionBillableItemsRelationManager;
 use App\Filament\Resources\Contracts\RelationManagers\ScheduledInterventionsRelationManager;
 use App\Filament\Resources\Contracts\Schemas\ContractForm;
 use App\Filament\Resources\Contracts\Tables\ContractsTable;
@@ -217,6 +218,17 @@ class ContractResource extends TenantScopedResource
                                 ->where('status', 'active')
                                 ->sum('total_price'))
                             ->money(fn (Contract $record): string => $record->currency ?: 'EUR'),
+                        TextEntry::make('pending_intervention_billable_items_count')
+                            ->label('Extra pending')
+                            ->state(fn (Contract $record): int => $record->interventionBillableItems()
+                                ->where('status', 'pending')
+                                ->count()),
+                        TextEntry::make('pending_intervention_billable_items_total')
+                            ->label('Totale extra pending')
+                            ->state(fn (Contract $record): float => (float) $record->interventionBillableItems()
+                                ->where('status', 'pending')
+                                ->sum('total_price'))
+                            ->money(fn (Contract $record): string => $record->currency ?: 'EUR'),
                     ])
                     ->columns(3),
                 Section::make('Note')
@@ -352,6 +364,7 @@ class ContractResource extends TenantScopedResource
             ContractServicesRelationManager::class,
             ContractBillableItemsRelationManager::class,
             ScheduledInterventionsRelationManager::class,
+            InterventionBillableItemsRelationManager::class,
             ContractBillingSchedulesRelationManager::class,
             DocumentsRelationManager::class,
             ContractEventsRelationManager::class,

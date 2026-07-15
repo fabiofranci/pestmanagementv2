@@ -6,6 +6,7 @@ use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ScheduledIntervention extends Model
 {
@@ -46,5 +47,10 @@ class ScheduledIntervention extends Model
     public function serviceType(): BelongsTo
     {
         return $this->belongsTo(ServiceType::class);
+    }
+
+    public function interventionBillableItems(): HasMany
+    {
+        return $this->hasMany(InterventionBillableItem::class);
     }
 }

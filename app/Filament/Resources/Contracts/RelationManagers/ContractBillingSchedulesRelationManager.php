@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Contracts\RelationManagers;
 
 use App\Models\ContractBillingSchedule;
+use App\Support\Billing\InterventionBillableItemService;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -13,6 +14,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Notifications\Notification;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
@@ -135,6 +137,30 @@ class ContractBillingSchedulesRelationManager extends RelationManager
             ])
             ->recordActions([
                 EditAction::make(),
+                Action::make('addPendingExtras')
+                    ->label('Aggiungi extra pending')
+                    ->icon('heroicon-o-plus-circle')
+                    ->color('info')
+                    ->action(function (ContractBillingSchedule $record): void {
+                        $result = app(InterventionBillableItemService::class)
+                            ->addPendingToBillingSchedule($record);
+
+                        if ($result['count'] === 0) {
+                            Notification::make()
+                                ->info()
+                                ->title('Nessun extra pending')
+                                ->body('Non ci sono extra fatturabili pending da collegare a questa scadenza.')
+                                ->send();
+
+                            return;
+                        }
+
+                        Notification::make()
+                            ->success()
+                            ->title('Extra pending collegati')
+                            ->body($result['count'].' extra collegati per un totale di '.number_format($result['total'], 2, ',', '.').' '.($record->currency ?: 'EUR').'.')
+                            ->send();
+                    }),
                 Action::make('markInvoiced')
                     ->label('Segna fatturata')
                     ->icon('heroicon-o-check-circle')
