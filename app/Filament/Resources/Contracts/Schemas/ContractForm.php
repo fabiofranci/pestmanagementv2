@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Contracts\Schemas;
 use App\Models\Contract;
 use App\Models\Customer;
 use App\Models\CustomerSite;
+use App\Support\Contracts\ContractNumberService;
 use App\Support\Tenancy\CurrentTenant;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -30,6 +31,7 @@ class ContractForm
                         TextInput::make('contract_number')
                             ->label('Numero contratto')
                             ->helperText('Accetta numerazioni storiche come 2025/1, 2026/1, 1072 o 9999.')
+                            ->default(fn (): string => app(ContractNumberService::class)->nextForTenant(app(CurrentTenant::class)->get()))
                             ->required()
                             ->scopedUnique(
                                 Contract::class,
@@ -41,11 +43,10 @@ class ContractForm
                         Select::make('status')
                             ->label('Stato')
                             ->options([
-                                'draft' => 'Bozza',
                                 'active' => 'Attivo',
-                                'suspended' => 'Sospeso',
-                                'closed' => 'Chiuso',
+                                'concluded' => 'Concluso',
                                 'cancelled' => 'Annullato',
+                                'expired' => 'Scaduto',
                             ])
                             ->default('active')
                             ->native(false)
@@ -147,7 +148,18 @@ class ContractForm
                     ->schema([
                         TextInput::make('payment_terms')
                             ->label('Condizioni di pagamento')
+                            ->datalist(static::paymentTermOptions())
                             ->maxLength(255),
+                        Select::make('billing_frequency')
+                            ->label('Cadenza fatturazione')
+                            ->options(static::frequencyOptions(oneTimeLabel: 'Unica soluzione'))
+                            ->native(false)
+                            ->helperText('Fonte principale per generare le scadenze di fatturazione del contratto.'),
+                        TextInput::make('billing_installments_count')
+                            ->label('Numero rate')
+                            ->numeric()
+                            ->integer()
+                            ->minValue(1),
                         TextInput::make('total_value')
                             ->label('Valore totale')
                             ->numeric(),
@@ -247,6 +259,36 @@ class ContractForm
             Textarea::make('notes')
                 ->label('Note')
                 ->columnSpanFull(),
+        ];
+    }
+
+    protected static function paymentTermOptions(): array
+    {
+        return [
+            'Visto fattura',
+            '30 giorni',
+            '30 giorni data fattura',
+            '30 giorni fine mese',
+            '60 giorni',
+            '60 giorni data fattura',
+            '60 giorni fine mese',
+            'Bonifico anticipato',
+            'Rimessa diretta',
+        ];
+    }
+
+    protected static function frequencyOptions(string $oneTimeLabel): array
+    {
+        return [
+            'weekly' => 'Settimanale',
+            'fortnightly' => 'Quindicinale',
+            'monthly' => 'Mensile',
+            'bimonthly' => 'Bimestrale',
+            'quarterly' => 'Trimestrale',
+            'four_monthly' => 'Quadrimestrale',
+            'six_monthly' => 'Semestrale',
+            'yearly' => 'Annuale',
+            'one_time' => $oneTimeLabel,
         ];
     }
 

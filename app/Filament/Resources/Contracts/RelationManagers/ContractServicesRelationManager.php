@@ -100,7 +100,7 @@ class ContractServicesRelationManager extends RelationManager
                     ->native(false)
                     ->helperText('Usata per generare gli interventi programmati dal contratto.'),
                 Select::make('billing_frequency')
-                    ->label('Cadenza fatturazione')
+                    ->label('Cadenza fatturazione servizio')
                     ->options([
                         'weekly' => 'Settimanale',
                         'fortnightly' => 'Quindicinale',
@@ -113,7 +113,7 @@ class ContractServicesRelationManager extends RelationManager
                         'one_time' => 'Unica soluzione',
                     ])
                     ->native(false)
-                    ->helperText('Usata come riferimento per il piano fatturazione previsto.'),
+                    ->helperText('Campo legacy di compatibilita. La generazione usa la cadenza fatturazione impostata sul contratto.'),
                 TextInput::make('quantity')
                     ->label('Quantita')
                     ->numeric(),
@@ -185,7 +185,7 @@ class ContractServicesRelationManager extends RelationManager
                     })
                     ->placeholder('-'),
                 TextColumn::make('billing_frequency')
-                    ->label('Cadenza fatturazione')
+                    ->label('Cadenza fatturazione servizio')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'weekly' => 'Settimanale',
                         'fortnightly' => 'Quindicinale',

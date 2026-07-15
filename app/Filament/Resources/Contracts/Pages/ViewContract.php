@@ -3,7 +3,10 @@
 namespace App\Filament\Resources\Contracts\Pages;
 
 use App\Filament\Resources\Contracts\ContractResource;
+use App\Models\Contract;
+use App\Support\Contracts\ContractNumberService;
 use App\Support\Contracts\ContractProgrammingService;
+use App\Support\Tenancy\CurrentTenant;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms\Components\KeyValue;
@@ -26,8 +29,8 @@ class ViewContract extends ViewRecord
             $this->regenerateInterventionsAction(),
             $this->generateBillingSchedulesAction(),
             $this->regenerateBillingSchedulesAction(),
-            $this->closeContractAction(),
-            $this->reactivateContractAction(),
+            $this->renewContractAction(),
+            $this->cancelContractAction(),
         ];
     }
 
@@ -180,61 +183,150 @@ class ViewContract extends ViewRecord
         $reasons = collect($result['skipped_records'])
             ->pluck('reason')
             ->filter()
+            ->map(fn (string $reason): string => $this->generationReasonLabel($reason))
             ->unique()
             ->implode(', ');
 
         return $reasons ? "{$body} Motivi: {$reasons}." : $body;
     }
 
-    protected function closeContractAction(): Action
+    protected function generationReasonLabel(string $reason): string
     {
-        return Action::make('closeContract')
-            ->label('Chiudi contratto')
-            ->color('warning')
+        return match ($reason) {
+            'missing_contract_billing_frequency' => 'cadenza fatturazione mancante sul contratto',
+            'missing_total_value' => 'valore totale mancante o zero',
+            'missing_or_invalid_dates' => 'date mancanti o non valide',
+            'frequency_not_supported' => 'cadenza non supportata',
+            'duplicate' => 'record gia presente',
+            'missing_customer_site' => 'sede cliente mancante',
+            default => $reason,
+        };
+    }
+
+    protected function renewContractAction(): Action
+    {
+        return Action::make('renewContract')
+            ->label('Rinnova contratto')
+            ->color('success')
             ->requiresConfirmation()
-            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()) && $this->getRecord()->status !== 'closed')
+            ->modalHeading('Rinnova contratto')
+            ->modalDescription('Duplica il contratto, assegna il prossimo numero progressivo, copia il servizio e conclude il contratto corrente.')
+            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()) && $this->getRecord()->status === 'active')
             ->action(function (): void {
                 $record = $this->getRecord();
-                $record->update(['status' => 'closed']);
+                $newContract = $this->renewContract($record);
                 $this->record = $record->refresh();
-
-                $record->events()->create([
-                    'tenant_id' => $record->tenant_id,
-                    'event_type' => 'closed',
-                    'title' => 'Contratto chiuso',
-                    'created_by_user_id' => auth()->id(),
-                ]);
 
                 Notification::make()
                     ->success()
-                    ->title('Contratto chiuso')
+                    ->title('Contratto rinnovato')
+                    ->body("Creato contratto {$newContract->contract_number}.")
                     ->send();
             });
     }
 
-    protected function reactivateContractAction(): Action
+    protected function cancelContractAction(): Action
     {
-        return Action::make('reactivateContract')
-            ->label('Riattiva contratto')
-            ->color('success')
+        return Action::make('cancelContract')
+            ->label('Disdici contratto')
+            ->color('danger')
             ->requiresConfirmation()
-            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()) && $this->getRecord()->status === 'closed')
+            ->modalHeading('Disdici contratto')
+            ->modalDescription('Imposta il contratto come annullato e registra un evento di disdetta.')
+            ->visible(fn (): bool => ContractResource::canEdit($this->getRecord()) && ! in_array($this->getRecord()->status, ['cancelled', 'concluded'], true))
             ->action(function (): void {
                 $record = $this->getRecord();
-                $record->update(['status' => 'active']);
+                $record->update(['status' => 'cancelled']);
                 $this->record = $record->refresh();
 
                 $record->events()->create([
                     'tenant_id' => $record->tenant_id,
-                    'event_type' => 'reactivated',
-                    'title' => 'Contratto riattivato',
+                    'event_type' => 'cancelled',
+                    'title' => 'Contratto disdetto',
                     'created_by_user_id' => auth()->id(),
                 ]);
 
                 Notification::make()
                     ->success()
-                    ->title('Contratto riattivato')
+                    ->title('Contratto disdetto')
                     ->send();
             });
+    }
+
+    protected function renewContract(Contract $record): Contract
+    {
+        return $record->getConnection()->transaction(function () use ($record): Contract {
+            $newContract = $record->replicate([
+                'contract_number',
+                'status',
+                'renewed_from_contract_id',
+                'created_at',
+                'updated_at',
+            ]);
+
+            $increasePercentage = $this->renewalIncreasePercentage($record);
+
+            $newContract->forceFill([
+                'contract_number' => app(ContractNumberService::class)->nextForTenant(app(CurrentTenant::class)->get()),
+                'status' => 'active',
+                'renewed_from_contract_id' => $record->getKey(),
+                'total_value' => $this->applyIncrease($record->total_value, $increasePercentage),
+            ]);
+            $newContract->save();
+
+            foreach ($record->services()->get() as $service) {
+                $newService = $service->replicate(['created_at', 'updated_at']);
+                $newService->forceFill([
+                    'contract_id' => $newContract->getKey(),
+                    'unit_price' => $this->applyIncrease($service->unit_price, $increasePercentage),
+                    'total_price' => $this->applyIncrease($service->total_price, $increasePercentage),
+                ]);
+                $newService->save();
+            }
+
+            $record->update(['status' => 'concluded']);
+
+            $record->events()->create([
+                'tenant_id' => $record->tenant_id,
+                'event_type' => 'renewed',
+                'title' => 'Contratto rinnovato',
+                'payload' => [
+                    'new_contract_id' => $newContract->getKey(),
+                    'new_contract_number' => $newContract->contract_number,
+                    'increase_percentage' => $increasePercentage,
+                ],
+                'created_by_user_id' => auth()->id(),
+            ]);
+
+            $newContract->events()->create([
+                'tenant_id' => $newContract->tenant_id,
+                'event_type' => 'created_from_renewal',
+                'title' => 'Contratto creato da rinnovo',
+                'payload' => [
+                    'renewed_from_contract_id' => $record->getKey(),
+                    'renewed_from_contract_number' => $record->contract_number,
+                    'increase_percentage' => $increasePercentage,
+                ],
+                'created_by_user_id' => auth()->id(),
+            ]);
+
+            return $newContract;
+        });
+    }
+
+    protected function renewalIncreasePercentage(Contract $record): float
+    {
+        $percentage = (float) ($record->renewal_price_increase_percentage ?? 0);
+
+        return $record->tacit_renewal && $percentage > 0 ? $percentage : 0.0;
+    }
+
+    protected function applyIncrease(mixed $amount, float $percentage): mixed
+    {
+        if ($amount === null || $percentage <= 0) {
+            return $amount;
+        }
+
+        return round((float) $amount * (1 + ($percentage / 100)), 2);
     }
 }

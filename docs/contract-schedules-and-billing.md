@@ -1,6 +1,6 @@
 # Contratti V2 - interventi programmati e scadenze fatturazione
 
-Data aggiornamento: 2026-06-22
+Data aggiornamento: 2026-07-15
 
 Questo branch rende la scheda contratto il punto operativo per gestire interventi programmati e piano di fatturazione previsto, senza introdurre work order, visite, ispezioni, PDF o fatturazione elettronica.
 
@@ -24,9 +24,9 @@ La generazione usa `starts_on` e `ends_on` del servizio se presenti; in alternat
 
 ## Cadenza fatturazione
 
-La cadenza amministrativa vive sul servizio contrattuale (`contract_services.billing_frequency`) e viene usata per generare `contract_billing_schedules`.
+La cadenza amministrativa vive sul contratto (`contracts.billing_frequency`) e viene usata per generare `contract_billing_schedules`.
 
-Se il contratto ha un solo servizio attivo, viene usata la sua cadenza di fatturazione. Se il contratto ha più servizi attivi, la generazione automatica usa la cadenza solo quando tutte le cadenze valorizzate coincidono.
+`contract_services.billing_frequency` resta solo per compatibilita temporanea con dati gia inseriti e non e piu la fonte primaria della generazione.
 
 Il piano di fatturazione divide `contracts.total_value` sulle scadenze calcolate tra `start_date` e `end_date`; l'ultima rata assorbe eventuali arrotondamenti.
 
@@ -53,6 +53,8 @@ La pagina `ViewContract` espone:
 La generazione crea solo record in `contract_billing_schedules`; non crea fatture fiscali, XML o invii elettronici.
 
 La rigenerazione elimina prima solo le scadenze con stato `planned`, poi ricrea il piano. Le scadenze già fatturate o annullate non vengono eliminate.
+
+Se `billing_frequency` manca sul contratto, non vengono create scadenze e l'azione mostra un warning.
 
 Se `total_value` è nullo o zero, non vengono create scadenze e l'azione mostra un warning.
 

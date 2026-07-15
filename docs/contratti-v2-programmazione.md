@@ -38,8 +38,8 @@ La pagina riepilogativa contratto include l'azione `Genera piano fatturazione`.
 L'azione:
 
 - crea record in `contract_billing_schedules`;
-- usa `total_value`, `currency`, `start_date` ed `end_date` del contratto;
-- propone come default la `billing_frequency` del primo servizio contrattuale, se presente;
+- usa `billing_frequency`, `total_value`, `currency`, `start_date` ed `end_date` del contratto;
+- non usa piu `contract_services.billing_frequency` come fonte primaria;
 - supporta modalita:
   - unica soluzione;
   - mensile;

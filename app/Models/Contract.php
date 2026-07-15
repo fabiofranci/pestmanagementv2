@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -18,6 +19,7 @@ class Contract extends Model
         'tenant_id',
         'customer_id',
         'customer_site_id',
+        'renewed_from_contract_id',
         'contract_number',
         'status',
         'start_date',
@@ -28,6 +30,8 @@ class Contract extends Model
         'renewal_notice_days',
         'term',
         'payment_terms',
+        'billing_frequency',
+        'billing_installments_count',
         'total_value',
         'currency',
         'notes',
@@ -39,6 +43,7 @@ class Contract extends Model
         'tacit_renewal' => 'boolean',
         'renewal_price_increase_percentage' => 'decimal:2',
         'renewal_notice_days' => 'integer',
+        'billing_installments_count' => 'integer',
     ];
 
     public function tenant()
@@ -54,6 +59,16 @@ class Contract extends Model
     public function site()
     {
         return $this->belongsTo(CustomerSite::class, 'customer_site_id');
+    }
+
+    public function renewedFrom(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'renewed_from_contract_id');
+    }
+
+    public function renewals(): HasMany
+    {
+        return $this->hasMany(self::class, 'renewed_from_contract_id');
     }
 
     public function services(): HasMany

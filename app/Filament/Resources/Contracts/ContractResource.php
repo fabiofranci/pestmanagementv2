@@ -64,20 +64,22 @@ class ContractResource extends TenantScopedResource
                         TextEntry::make('status')
                             ->label('Stato')
                             ->formatStateUsing(fn (?string $state): string => match ($state) {
-                                'draft' => 'Bozza',
                                 'active' => 'Attivo',
+                                'concluded' => 'Concluso',
+                                'cancelled' => 'Annullato',
+                                'expired' => 'Scaduto',
+                                'draft' => 'Bozza',
                                 'suspended' => 'Sospeso',
                                 'closed' => 'Chiuso',
-                                'cancelled' => 'Annullato',
                                 default => $state ?: '-',
                             })
                             ->badge()
                             ->color(fn (?string $state): string => match ($state) {
                                 'active' => 'success',
-                                'draft' => 'gray',
-                                'suspended' => 'warning',
-                                'closed' => 'info',
+                                'concluded' => 'info',
                                 'cancelled' => 'danger',
+                                'expired' => 'warning',
+                                'draft', 'suspended', 'closed' => 'gray',
                                 default => 'gray',
                             }),
                         TextEntry::make('start_date')
@@ -94,6 +96,13 @@ class ContractResource extends TenantScopedResource
                             ->placeholder('-'),
                         TextEntry::make('payment_terms')
                             ->label('Condizioni pagamento')
+                            ->placeholder('-'),
+                        TextEntry::make('billing_frequency')
+                            ->label('Cadenza fatturazione')
+                            ->formatStateUsing(fn (?string $state): string => static::formatFrequency($state, oneTimeLabel: 'Unica soluzione'))
+                            ->placeholder('-'),
+                        TextEntry::make('billing_installments_count')
+                            ->label('Numero rate')
                             ->placeholder('-'),
                         TextEntry::make('renewal')
                             ->label('Rinnovo')
@@ -153,12 +162,9 @@ class ContractResource extends TenantScopedResource
                                     ->map(fn ($service): ?string => $service->operational_frequency ?: $service->frequency)
                                     ->all());
                             }),
-                        TextEntry::make('billing_frequencies')
-                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Cadenza fatturazione' : 'Cadenze fatturazione')
-                            ->state(fn (Contract $record): string => static::formatFrequencyList(
-                                $record->services()->pluck('billing_frequency')->all(),
-                                oneTimeLabel: 'Unica soluzione',
-                            )),
+                        TextEntry::make('billing_frequency_summary')
+                            ->label('Cadenza fatturazione')
+                            ->state(fn (Contract $record): string => static::formatFrequency($record->billing_frequency, oneTimeLabel: 'Unica soluzione')),
                         TextEntry::make('next_scheduled_intervention')
                             ->label('Prossimo intervento')
                             ->state(function (Contract $record): string {

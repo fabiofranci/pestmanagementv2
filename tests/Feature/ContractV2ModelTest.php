@@ -17,6 +17,7 @@ use App\Models\ScheduledIntervention;
 use App\Models\ServiceType;
 use App\Models\Tenant;
 use App\Models\User;
+use App\Support\Contracts\ContractNumberService;
 use App\Support\Contracts\ContractProgrammingService;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantConnectionManager;
@@ -174,6 +175,20 @@ class ContractV2ModelTest extends TestCase
             [$contract] = $this->createContractFixture($tenant, '2025/1', 'Cliente Storico');
 
             $this->assertSame('2025/1', $contract->contract_number);
+        });
+    }
+
+    public function test_next_contract_number_ignores_non_numeric_contract_numbers(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            $this->createContractFixture($tenant, '1', 'Cliente Uno');
+            $this->createContractFixture($tenant, '2026/1', 'Cliente Storico Slash');
+            $this->createContractFixture($tenant, 'AZ-009', 'Cliente Codice Legacy');
+            $this->createContractFixture($tenant, '9', 'Cliente Nove');
+
+            $this->assertSame('10', app(ContractNumberService::class)->nextForTenant($tenant));
         });
     }
 
@@ -426,6 +441,35 @@ class ContractV2ModelTest extends TestCase
         }
     }
 
+    public function test_new_contract_form_proposes_next_numeric_contract_number(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            $this->createContractFixture($tenant, '7', 'Cliente Sette');
+            $this->createContractFixture($tenant, '2026/1', 'Cliente Storico');
+            $this->createContractFixture($tenant, '18', 'Cliente Diciotto');
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(TenantConnectionManager::class)->activate($tenant);
+        app(CurrentTenant::class)->set($tenant);
+        Filament::setTenant($tenant, isQuiet: true);
+
+        try {
+            Livewire::test(CreateContract::class)
+                ->assertFormSet([
+                    'contract_number' => '19',
+                ]);
+        } finally {
+            app(CurrentTenant::class)->set(null);
+            Filament::setTenant(null, isQuiet: true);
+            DB::purge(config('tenancy.database_connection'));
+        }
+    }
+
     public function test_contract_view_page_renders_summary_and_related_data(): void
     {
         $tenant = $this->createTenant();
@@ -516,33 +560,176 @@ class ContractV2ModelTest extends TestCase
                 ->assertActionVisible('regenerateInterventions')
                 ->assertActionVisible('generateBillingSchedules')
                 ->assertActionVisible('regenerateBillingSchedules')
-                ->assertActionVisible('closeContract')
+                ->assertActionVisible('renewContract')
+                ->assertActionVisible('cancelContract')
+                ->assertActionDoesNotExist('closeContract')
+                ->assertActionDoesNotExist('reactivateContract')
                 ->assertActionDoesNotExist('duplicateContract')
                 ->callAction('addManualEvent', [
                     'event_type' => 'manual',
                     'title' => 'Nota operativa test',
-                ])
-                ->callAction('closeContract');
+                ]);
 
-            $this->assertSame('closed', Contract::query()->findOrFail($contractId)->status);
             $this->assertTrue(ContractEvent::query()
                 ->where('contract_id', $contractId)
                 ->where('event_type', 'manual')
                 ->where('title', 'Nota operativa test')
                 ->exists());
-            $this->assertTrue(ContractEvent::query()
-                ->where('contract_id', $contractId)
-                ->where('event_type', 'closed')
-                ->exists());
+        } finally {
+            app(CurrentTenant::class)->set(null);
+            Filament::setTenant(null, isQuiet: true);
+            DB::purge(config('tenancy.database_connection'));
+        }
+    }
 
+    public function test_renew_contract_action_duplicates_contract_service_and_concludes_old_contract(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, '10', 'Cliente Renewal Action');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
+                'payment_terms' => 'Visto fattura',
+                'billing_frequency' => 'quarterly',
+                'billing_installments_count' => 4,
+                'total_value' => 1000,
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio da rinnovare',
+                'operational_frequency' => 'monthly',
+                'status' => 'active',
+            ]);
+
+            return [$contract->getKey()];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(TenantConnectionManager::class)->activate($tenant);
+        app(CurrentTenant::class)->set($tenant);
+        Filament::setTenant($tenant, isQuiet: true);
+
+        try {
             Livewire::test(ViewContract::class, ['record' => $contractId])
-                ->assertActionVisible('reactivateContract')
-                ->callAction('reactivateContract');
+                ->callAction('renewContract');
 
-            $this->assertSame('active', Contract::query()->findOrFail($contractId)->status);
+            $oldContract = Contract::query()->findOrFail($contractId);
+            $newContract = Contract::query()
+                ->where('renewed_from_contract_id', $contractId)
+                ->firstOrFail();
+
+            $this->assertSame('concluded', $oldContract->status);
+            $this->assertSame('active', $newContract->status);
+            $this->assertSame('11', $newContract->contract_number);
+            $this->assertSame($oldContract->customer_id, $newContract->customer_id);
+            $this->assertSame('quarterly', $newContract->billing_frequency);
+            $this->assertSame(1, $newContract->services()->count());
+            $this->assertTrue($oldContract->renewals()->whereKey($newContract->getKey())->exists());
+            $this->assertSame($oldContract->getKey(), $newContract->renewedFrom?->getKey());
+
             $this->assertTrue(ContractEvent::query()
                 ->where('contract_id', $contractId)
-                ->where('event_type', 'reactivated')
+                ->where('event_type', 'renewed')
+                ->exists());
+            $this->assertTrue(ContractEvent::query()
+                ->where('contract_id', $newContract->getKey())
+                ->where('event_type', 'created_from_renewal')
+                ->exists());
+        } finally {
+            app(CurrentTenant::class)->set(null);
+            Filament::setTenant(null, isQuiet: true);
+            DB::purge(config('tenancy.database_connection'));
+        }
+    }
+
+    public function test_renew_contract_action_applies_four_percent_increase_when_tacit_renewal_is_enabled(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, '20', 'Cliente Aumento');
+
+            $contract->update([
+                'tacit_renewal' => true,
+                'renewal_price_increase_percentage' => 4.00,
+                'total_value' => 1000,
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio aumento',
+                'quantity' => 10,
+                'unit_price' => 100,
+                'total_price' => 1000,
+                'status' => 'active',
+            ]);
+
+            return [$contract->getKey()];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(TenantConnectionManager::class)->activate($tenant);
+        app(CurrentTenant::class)->set($tenant);
+        Filament::setTenant($tenant, isQuiet: true);
+
+        try {
+            Livewire::test(ViewContract::class, ['record' => $contractId])
+                ->callAction('renewContract');
+
+            $newContract = Contract::query()
+                ->where('renewed_from_contract_id', $contractId)
+                ->firstOrFail();
+            $newService = $newContract->services()->firstOrFail();
+
+            $this->assertEqualsWithDelta(1040.00, (float) $newContract->total_value, 0.01);
+            $this->assertSame('104.00', $newService->unit_price);
+            $this->assertSame('1040.00', $newService->total_price);
+        } finally {
+            app(CurrentTenant::class)->set(null);
+            Filament::setTenant(null, isQuiet: true);
+            DB::purge(config('tenancy.database_connection'));
+        }
+    }
+
+    public function test_cancel_contract_action_sets_status_cancelled(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contract] = $this->createContractFixture($tenant, 'CTR-CANCEL', 'Cliente Cancel');
+
+            return [$contract->getKey()];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(TenantConnectionManager::class)->activate($tenant);
+        app(CurrentTenant::class)->set($tenant);
+        Filament::setTenant($tenant, isQuiet: true);
+
+        try {
+            Livewire::test(ViewContract::class, ['record' => $contractId])
+                ->callAction('cancelContract');
+
+            $this->assertSame('cancelled', Contract::query()->findOrFail($contractId)->status);
+            $this->assertTrue(ContractEvent::query()
+                ->where('contract_id', $contractId)
+                ->where('event_type', 'cancelled')
                 ->exists());
         } finally {
             app(CurrentTenant::class)->set(null);
@@ -702,6 +889,7 @@ class ContractV2ModelTest extends TestCase
                 'end_date' => '2026-09-30',
                 'total_value' => 900,
                 'currency' => 'EUR',
+                'billing_frequency' => 'trimestrale',
             ]);
 
             ContractService::query()->create([
@@ -711,7 +899,7 @@ class ContractV2ModelTest extends TestCase
                 'customer_site_id' => $site->getKey(),
                 'description' => 'Servizio trimestrale',
                 'operational_frequency' => 'monthly',
-                'billing_frequency' => 'trimestrale',
+                'billing_frequency' => 'yearly',
                 'status' => 'active',
             ]);
 
@@ -759,6 +947,47 @@ class ContractV2ModelTest extends TestCase
         });
     }
 
+    public function test_billing_schedule_reads_billing_frequency_from_contract_not_service(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-BILLING-CONTRACT', 'Cliente Billing Contract');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
+                'total_value' => 1200,
+                'currency' => 'EUR',
+                'billing_frequency' => 'six_monthly',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio con cadenza legacy diversa',
+                'operational_frequency' => 'monthly',
+                'billing_frequency' => 'monthly',
+                'status' => 'active',
+            ]);
+
+            $service = app(ContractProgrammingService::class);
+            $created = $service->generateBillingSchedules($contract->refresh());
+
+            $this->assertSame(2, $created);
+            $this->assertSame([
+                '2026-01-01',
+                '2026-07-01',
+            ], ContractBillingSchedule::query()
+                ->orderBy('due_date')
+                ->get()
+                ->map(fn (ContractBillingSchedule $schedule): string => $schedule->due_date->toDateString())
+                ->all());
+        });
+    }
+
     public function test_contract_programming_does_not_generate_billing_without_total_value(): void
     {
         $tenant = $this->createTenant();
@@ -770,6 +999,7 @@ class ContractV2ModelTest extends TestCase
                 'start_date' => '2026-01-01',
                 'end_date' => '2026-12-31',
                 'total_value' => null,
+                'billing_frequency' => 'quarterly',
             ]);
 
             ContractService::query()->create([

@@ -37,6 +37,9 @@ class ContractEventsRelationManager extends RelationManager
                         'closed' => 'Chiusura',
                         'reactivated' => 'Riattivazione',
                         'duplicated' => 'Duplicazione',
+                        'renewed' => 'Rinnovo',
+                        'created_from_renewal' => 'Creato da rinnovo',
+                        'cancelled' => 'Disdetta',
                         'status_changed' => 'Cambio stato',
                     ])
                     ->default('manual')
@@ -66,6 +69,9 @@ class ContractEventsRelationManager extends RelationManager
                         'closed' => 'Chiusura',
                         'reactivated' => 'Riattivazione',
                         'duplicated' => 'Duplicazione',
+                        'renewed' => 'Rinnovo',
+                        'created_from_renewal' => 'Creato da rinnovo',
+                        'cancelled' => 'Disdetta',
                         'status_changed' => 'Cambio stato',
                         default => $state ?: '-',
                     })
@@ -74,6 +80,8 @@ class ContractEventsRelationManager extends RelationManager
                         'closed' => 'warning',
                         'reactivated' => 'success',
                         'duplicated' => 'info',
+                        'renewed', 'created_from_renewal' => 'success',
+                        'cancelled' => 'danger',
                         default => 'gray',
                     })
                     ->searchable(),

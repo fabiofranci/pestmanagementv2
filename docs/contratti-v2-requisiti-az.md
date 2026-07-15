@@ -1,6 +1,6 @@
 # Contratti V2 - Requisiti AZ
 
-Data aggiornamento: 2026-06-19
+Data aggiornamento: 2026-07-15
 
 Questo documento recepisce i requisiti chiariti da AZ Disinfestazioni sulla gestione contrattuale. Le modifiche restano nel perimetro Contratti V2 e non introducono PDF, XML, Aruba, visite, ispezioni o app mobile.
 
@@ -60,12 +60,14 @@ Questo permette di usare Pest Management V2 sia per tenant come AZ, che vogliono
 
 ## Cadenze Separate
 
-Sono state distinte due cadenze sul servizio contrattuale:
+Sono state distinte le cadenze operative e amministrative:
 
-- `operational_frequency`: cadenza operativa usata per programmare gli interventi;
-- `billing_frequency`: cadenza amministrativa usata come riferimento per il piano fatturazione previsto.
+- `contract_services.operational_frequency`: cadenza operativa usata per programmare gli interventi;
+- `contracts.billing_frequency`: cadenza amministrativa usata come fonte principale per il piano fatturazione previsto.
 
-Il vecchio campo `frequency` resta per compatibilita con dati gia inseriti. La generazione interventi usa `operational_frequency` e, se assente, ricade su `frequency`.
+Il vecchio campo `contract_services.frequency` resta per compatibilita con dati gia inseriti. La generazione interventi usa `operational_frequency` e, se assente, ricade su `frequency`.
+
+`contract_services.billing_frequency` resta solo per compatibilita temporanea, ma non guida piu la generazione delle scadenze.
 
 ## Rinnovo Tacito
 
@@ -75,7 +77,7 @@ Il contratto ora puo memorizzare:
 - `renewal_price_increase_percentage`: percentuale aumento rinnovo, default `4.00`;
 - `renewal_notice_days`: giorni di preavviso, default `30`.
 
-In questo branch i campi sono solo dati strutturati. Non e ancora implementato il rinnovo automatico completo.
+L'azione `Rinnova contratto` duplica il contratto, assegna un nuovo numero progressivo, copia il servizio, conclude il vecchio contratto e crea gli eventi di storico. Se il rinnovo tacito prevede un aumento percentuale, l'aumento viene applicato al valore del nuovo contratto e ai prezzi del servizio copiato.
 
 ## Import Guidato Vecchi Contratti
 
@@ -86,7 +88,7 @@ La scelta attuale e preparare la UI per inserimento manuale guidato:
 - l'operatore crea cliente e sede se mancanti;
 - inserisce il contratto con il numero storico originale;
 - aggiunge il servizio principale per tenant AZ, oppure i servizi contrattuali per tenant multi-servizio;
-- imposta cadenza operativa e cadenza fatturazione;
+- imposta cadenza operativa sul servizio e cadenza fatturazione sul contratto;
 - compila rinnovo tacito e condizioni economiche.
 
 Questo permette di ricostruire progressivamente l'archivio senza rischiare import distruttivi o mappature legacy premature.

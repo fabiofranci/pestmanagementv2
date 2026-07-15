@@ -38,20 +38,22 @@ class ContractsTable
                 TextColumn::make('status')
                     ->label('Stato')
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'draft' => 'Bozza',
                         'active' => 'Attivo',
+                        'concluded' => 'Concluso',
+                        'cancelled' => 'Annullato',
+                        'expired' => 'Scaduto',
+                        'draft' => 'Bozza',
                         'suspended' => 'Sospeso',
                         'closed' => 'Chiuso',
-                        'cancelled' => 'Annullato',
                         default => $state ?: '-',
                     })
                     ->badge()
                     ->color(fn (?string $state): string => match ($state) {
                         'active' => 'success',
-                        'draft' => 'gray',
-                        'suspended' => 'warning',
-                        'closed' => 'info',
+                        'concluded' => 'info',
                         'cancelled' => 'danger',
+                        'expired' => 'warning',
+                        'draft', 'suspended', 'closed' => 'gray',
                         default => 'gray',
                     })
                     ->searchable()
@@ -82,6 +84,22 @@ class ContractsTable
                     ->sortable(false),
                 TextColumn::make('payment_terms')
                     ->label('Condizioni pagamento')
+                    ->searchable()
+                    ->toggleable(),
+                TextColumn::make('billing_frequency')
+                    ->label('Cadenza fatturazione')
+                    ->formatStateUsing(fn (?string $state): string => match ($state) {
+                        'weekly' => 'Settimanale',
+                        'fortnightly' => 'Quindicinale',
+                        'monthly' => 'Mensile',
+                        'bimonthly' => 'Bimestrale',
+                        'quarterly' => 'Trimestrale',
+                        'four_monthly' => 'Quadrimestrale',
+                        'six_monthly' => 'Semestrale',
+                        'yearly' => 'Annuale',
+                        'one_time' => 'Unica soluzione',
+                        default => $state ?: '-',
+                    })
                     ->searchable()
                     ->toggleable(),
                 TextColumn::make('renewal')
@@ -116,11 +134,10 @@ class ContractsTable
                 SelectFilter::make('status')
                     ->label('Stato')
                     ->options([
-                        'draft' => 'Bozza',
                         'active' => 'Attivo',
-                        'suspended' => 'Sospeso',
-                        'closed' => 'Chiuso',
+                        'concluded' => 'Concluso',
                         'cancelled' => 'Annullato',
+                        'expired' => 'Scaduto',
                     ])
                     ->native(false),
                 SelectFilter::make('customer_id')

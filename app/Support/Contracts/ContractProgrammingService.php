@@ -140,8 +140,6 @@ class ContractProgrammingService
 
     public function generateBillingSchedules(Contract $contract, bool $replace = false, ?int $userId = null): int
     {
-        $contract->loadMissing('services');
-
         return $this->performBillingScheduleGeneration(
             contract: $contract,
             frequency: $this->billingFrequencyFor($contract),
@@ -180,7 +178,8 @@ class ContractProgrammingService
 
         if (! $frequency) {
             $skipped[] = [
-                'reason' => 'frequency_not_supported',
+                'reason' => 'missing_contract_billing_frequency',
+                'message' => 'Imposta la cadenza fatturazione sul contratto prima di generare le scadenze.',
             ];
         }
 
@@ -267,6 +266,7 @@ class ContractProgrammingService
                 'replace' => $replace,
                 'total_value' => $contract->total_value,
                 'currency' => $currency,
+                'billing_installments_count' => $contract->billing_installments_count,
                 'start_date' => $contract->start_date?->toDateString(),
                 'end_date' => $contract->end_date?->toDateString(),
             ],
@@ -277,19 +277,7 @@ class ContractProgrammingService
 
     protected function billingFrequencyFor(Contract $contract): ?string
     {
-        $services = $contract->services->where('status', 'active');
-
-        if ($services->count() === 1) {
-            return $services->first()?->billing_frequency;
-        }
-
-        $frequencies = $services
-            ->map(fn (ContractService $service): ?string => $service->billing_frequency)
-            ->filter()
-            ->unique()
-            ->values();
-
-        return $frequencies->count() === 1 ? $frequencies->first() : null;
+        return $contract->billing_frequency;
     }
 
     protected function normalizeFrequency(?string $frequency): ?string
