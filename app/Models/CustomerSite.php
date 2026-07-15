@@ -15,6 +15,7 @@ class CustomerSite extends Model
     protected $fillable = [
         'tenant_id',
         'customer_id',
+        'auto_created_from_customer',
         'name',
         'address',
         'city',
@@ -27,6 +28,10 @@ class CustomerSite extends Model
         'site_code',
         'notes',
         'status',
+    ];
+
+    protected $casts = [
+        'auto_created_from_customer' => 'boolean',
     ];
 
     public function tenant()

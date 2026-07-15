@@ -8,6 +8,7 @@ use App\Support\Tenancy\CurrentTenant;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
@@ -99,6 +100,10 @@ class CustomerForm
                             ->searchable()
                             ->preload()
                             ->native(false),
+                        Toggle::make('default_site_same_as_customer')
+                            ->label('Sede coincidente con il cliente')
+                            ->helperText('Se attivo, il sistema può creare automaticamente una sede operativa usando i dati anagrafici del cliente.')
+                            ->default(false),
                         Select::make('status')
                             ->label('Stato')
                             ->options([

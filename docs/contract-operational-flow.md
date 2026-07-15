@@ -25,6 +25,20 @@ I servizi restano in `contract_services`.
 
 Per AZ il tenant puo lavorare in modalita un solo servizio per contratto. In quel caso la UI presenta la relazione come `Servizio principale`.
 
+Nei tenant con `contract_service_mode = single_service`, il form contratto mostra anche la sezione `Servizio principale`.
+In creazione e modifica del contratto e quindi possibile compilare il servizio nello stesso passaggio della testata contratto.
+
+La sezione propone:
+
+- sede servizio dalla sede selezionata nel contratto;
+- `starts_on` e `ends_on` dalle date inizio/fine contratto;
+- `total_price` dal valore totale contratto, se disponibile;
+- ricalcolo di `total_price` da `quantity * unit_price`, se entrambi sono valorizzati.
+
+Il totale resta modificabile manualmente. Al salvataggio, se esiste gia un servizio per il contratto, viene aggiornato; se non esiste, viene creato. In modalita `single_service` non viene mai creato un secondo servizio.
+
+Nei tenant con `contract_service_mode = multiple_services`, il form contratto resta concentrato sulla testata e i servizi si gestiscono dal relation manager dopo il salvataggio.
+
 La programmazione operativa vive sul servizio:
 
 - `contract_services.operational_schedule_mode`;
