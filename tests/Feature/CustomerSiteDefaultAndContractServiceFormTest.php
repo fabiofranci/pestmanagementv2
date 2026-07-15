@@ -245,6 +245,111 @@ class CustomerSiteDefaultAndContractServiceFormTest extends TestCase
         }
     }
 
+    public function test_creating_single_service_contract_saves_custom_months_schedule(): void
+    {
+        $tenant = $this->createTenant(contractServiceMode: Tenant::CONTRACT_SERVICE_MODE_SINGLE);
+
+        [$customer, $site, $serviceType] = $this->withinTenant($tenant, fn (Tenant $tenant): array => $this->createCustomerSiteAndServiceType($tenant));
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        $this->activateTenant($tenant);
+
+        try {
+            Livewire::test(CreateContract::class)
+                ->fillForm([
+                    'contract_number' => '5001-CUSTOM-MONTHS',
+                    'status' => 'active',
+                    'customer_id' => $customer->getKey(),
+                    'customer_site_id' => $site->getKey(),
+                    'start_date' => '2026-01-01',
+                    'end_date' => '2026-12-31',
+                    'currency' => 'EUR',
+                    'primary_service' => [
+                        'service_type_id' => $serviceType->getKey(),
+                        'customer_site_id' => $site->getKey(),
+                        'description' => 'Disinfestazioni mesi AZ',
+                        'operational_schedule_mode' => 'custom_months',
+                        'operational_frequency' => 'monthly',
+                        'scheduled_months' => [2, 3, 5, 6, 7],
+                        'interventions_per_year' => 5,
+                        'quantity' => 5,
+                        'unit_price' => 100,
+                        'currency' => 'EUR',
+                        'starts_on' => '2026-01-01',
+                        'ends_on' => '2026-12-31',
+                        'status' => 'active',
+                    ],
+                ])
+                ->call('create')
+                ->assertHasNoFormErrors();
+
+            $service = Contract::query()
+                ->where('contract_number', '5001-CUSTOM-MONTHS')
+                ->firstOrFail()
+                ->service()
+                ->firstOrFail();
+
+            $this->assertSame('custom_months', $service->operational_schedule_mode);
+            $this->assertNull($service->operational_frequency);
+            $this->assertSame([2, 3, 5, 6, 7], $service->scheduled_months);
+            $this->assertSame(5, $service->interventions_per_year);
+        } finally {
+            $this->deactivateTenant();
+        }
+    }
+
+    public function test_editing_single_service_contract_prefills_custom_months_schedule(): void
+    {
+        $tenant = $this->createTenant(contractServiceMode: Tenant::CONTRACT_SERVICE_MODE_SINGLE);
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$customer, $site, $serviceType] = $this->createCustomerSiteAndServiceType($tenant);
+
+            $contract = Contract::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_number' => '5002-CUSTOM-MONTHS',
+                'customer_id' => $customer->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
+                'currency' => 'EUR',
+                'status' => 'active',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Disinfestazioni mesi AZ',
+                'operational_schedule_mode' => 'custom_months',
+                'scheduled_months' => [2, 3, 5, 6, 7],
+                'interventions_per_year' => 5,
+                'currency' => 'EUR',
+                'status' => 'active',
+            ]);
+
+            return [$contract->getKey()];
+        });
+
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        $this->activateTenant($tenant);
+
+        try {
+            Livewire::test(EditContract::class, ['record' => $contractId])
+                ->assertFormSet([
+                    'primary_service.operational_schedule_mode' => 'custom_months',
+                    'primary_service.scheduled_months' => [2, 3, 5, 6, 7],
+                    'primary_service.interventions_per_year' => 5,
+                ]);
+        } finally {
+            $this->deactivateTenant();
+        }
+    }
+
     public function test_editing_single_service_contract_updates_existing_service_without_creating_second_one(): void
     {
         $tenant = $this->createTenant(contractServiceMode: Tenant::CONTRACT_SERVICE_MODE_SINGLE);

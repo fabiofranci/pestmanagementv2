@@ -53,6 +53,10 @@ L'azione aggiorna `contracts.total_value` e mostra:
 - totale articoli fatturabili;
 - totale contratto.
 
+In `EditContract`, dopo il click, il form viene riempito nuovamente dal record aggiornato: il campo `Valore totale` mostra subito il nuovo valore senza dover ricaricare manualmente la pagina.
+
+Se il totale calcolato e zero, la notifica e informativa/warning: non viene trattato come errore.
+
 Il ricalcolo automatico viene eseguito anche dopo il salvataggio del servizio principale in modalita `single_service` e dopo create, edit o delete dei servizi contrattuali e degli articoli fatturabili del contratto.
 
 ## Note operative

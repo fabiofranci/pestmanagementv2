@@ -57,6 +57,8 @@ Modalita supportate:
 - `custom_months`: genera un intervento per ogni mese indicato in `scheduled_months`;
 - `manual`: non genera interventi automaticamente.
 
+Nei tenant `single_service`, gli stessi campi sono disponibili nella sezione `Servizio principale` del form contratto. In modifica vengono precompilati dal `contract_service` esistente e al salvataggio aggiornano quel record senza crearne un secondo.
+
 Esempio AZ: per 5 disinfestazioni annue in Febbraio, Marzo, Maggio, Giugno e Luglio, impostare:
 
 ```json
@@ -117,7 +119,7 @@ Per i servizi e gli articoli:
 
 Gli `intervention_billable_items` non sono inclusi nel valore iniziale del contratto: sono extra successivi e restano collegati alla scadenza/fattura.
 
-In `ViewContract` e `EditContract` e disponibile l'azione `Ricalcola totale contratto`, che aggiorna `contracts.total_value` e mostra una notifica con totale servizi, totale articoli e totale contratto.
+In `ViewContract` e `EditContract` e disponibile l'azione `Ricalcola totale contratto`, che aggiorna `contracts.total_value` e mostra una notifica con totale servizi, totale articoli e totale contratto. In modifica contratto il campo `Valore totale` viene aggiornato subito nello state del form.
 
 ## Extra fatturabili interventi
 

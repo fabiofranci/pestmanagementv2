@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Resources\Contracts\Pages\EditContract;
 use App\Filament\Resources\Contracts\Pages\ViewContract;
 use App\Models\BillableItem;
 use App\Models\Contract;
@@ -145,6 +146,40 @@ class ContractTotalsServiceTest extends TestCase
                 ->assertHasNoActionErrors();
 
             $this->assertEqualsWithDelta(150.00, (float) Contract::query()->findOrFail($contractId)->total_value, 0.01);
+        } finally {
+            $this->deactivateTenant();
+        }
+    }
+
+    public function test_manual_recalculation_action_on_edit_contract_updates_form_state(): void
+    {
+        $tenant = $this->createTenant();
+
+        [$contractId] = $this->withinTenant($tenant, function (Tenant $tenant): array {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-EDIT-ACTION');
+            $contract->update(['total_value' => 1]);
+
+            $this->createService($tenant, $contract, $serviceType, $site, totalPrice: 210);
+            $this->createContractBillableItem($tenant, $contract, 'Contenitori esca', totalPrice: 40);
+
+            return [$contract->getKey()];
+        });
+
+        $this->actingAs($this->createTenantAdmin($tenant));
+        $this->activateTenant($tenant);
+
+        try {
+            Livewire::test(EditContract::class, ['record' => $contractId])
+                ->assertFormSet([
+                    'total_value' => '1.00',
+                ])
+                ->callAction('recalculateContractTotal')
+                ->assertHasNoActionErrors()
+                ->assertFormSet([
+                    'total_value' => '250.00',
+                ]);
+
+            $this->assertEqualsWithDelta(250.00, (float) Contract::query()->findOrFail($contractId)->total_value, 0.01);
         } finally {
             $this->deactivateTenant();
         }

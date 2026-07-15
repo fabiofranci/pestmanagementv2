@@ -31,19 +31,29 @@ trait RecalculatesContractTotals
         $billableItemsTotal = $service->calculateBillableItemsTotal($contract);
         $updatedContract = $service->updateContractTotal($contract);
         $this->record = $updatedContract;
+        $this->refreshContractTotalFormState($updatedContract);
 
-        Notification::make()
-            ->success()
+        $notification = Notification::make()
             ->title('Totale contratto ricalcolato')
             ->body($this->contractTotalsNotificationBody(
                 $servicesTotal,
                 $billableItemsTotal,
                 (float) $updatedContract->total_value,
                 $updatedContract->currency ?: 'EUR',
-            ))
-            ->send();
+            ));
+
+        ((float) $updatedContract->total_value > 0 ? $notification->success() : $notification->warning())->send();
 
         return $updatedContract;
+    }
+
+    protected function refreshContractTotalFormState(Contract $contract): void
+    {
+        if (! method_exists($this, 'fillFormWithDataAndCallHooks')) {
+            return;
+        }
+
+        $this->fillFormWithDataAndCallHooks($contract);
     }
 
     protected function contractTotalsNotificationBody(
