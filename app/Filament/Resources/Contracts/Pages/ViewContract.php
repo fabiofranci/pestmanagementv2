@@ -196,6 +196,8 @@ class ViewContract extends ViewRecord
             'missing_contract_billing_frequency' => 'cadenza fatturazione mancante sul contratto',
             'missing_total_value' => 'valore totale mancante o zero',
             'missing_or_invalid_dates' => 'date mancanti o non valide',
+            'manual_schedule' => 'programmazione manuale',
+            'missing_scheduled_months' => 'mesi personalizzati mancanti',
             'frequency_not_supported' => 'cadenza non supportata',
             'duplicate' => 'record gia presente',
             'missing_customer_site' => 'sede cliente mancante',

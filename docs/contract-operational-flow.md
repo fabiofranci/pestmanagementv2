@@ -25,12 +25,27 @@ I servizi restano in `contract_services`.
 
 Per AZ il tenant puo lavorare in modalita un solo servizio per contratto. In quel caso la UI presenta la relazione come `Servizio principale`.
 
-La cadenza operativa vive sul servizio:
+La programmazione operativa vive sul servizio:
 
+- `contract_services.operational_schedule_mode`;
 - `contract_services.operational_frequency`;
+- `contract_services.scheduled_months`;
+- `contract_services.interventions_per_year`;
 - fallback legacy: `contract_services.frequency`.
 
-Questa cadenza genera `scheduled_interventions`.
+Modalita supportate:
+
+- `recurring`: genera interventi ricorrenti usando `operational_frequency`;
+- `custom_months`: genera un intervento per ogni mese indicato in `scheduled_months`;
+- `manual`: non genera interventi automaticamente.
+
+Esempio AZ: per 5 disinfestazioni annue in Febbraio, Marzo, Maggio, Giugno e Luglio, impostare:
+
+```json
+[2, 3, 5, 6, 7]
+```
+
+La generazione crea record in `scheduled_interventions` senza duplicare date gia presenti. La rigenerazione elimina solo interventi futuri con stato `planned`; non elimina interventi `completed` o `cancelled`.
 
 ## Piano fatturazione
 

@@ -24,6 +24,9 @@ class ContractService extends Model
         'description',
         'frequency',
         'operational_frequency',
+        'operational_schedule_mode',
+        'scheduled_months',
+        'interventions_per_year',
         'billing_frequency',
         'quantity',
         'unit_price',
@@ -39,6 +42,8 @@ class ContractService extends Model
         'quantity' => 'decimal:2',
         'unit_price' => 'decimal:2',
         'total_price' => 'decimal:2',
+        'scheduled_months' => 'array',
+        'interventions_per_year' => 'integer',
         'starts_on' => 'date',
         'ends_on' => 'date',
     ];

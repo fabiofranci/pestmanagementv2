@@ -40,16 +40,6 @@ class ContractProgrammingService
         $contract->loadMissing('services');
 
         foreach ($contract->services->where('status', 'active') as $service) {
-            $frequency = $this->normalizeFrequency($service->operational_frequency ?: $service->frequency);
-
-            if (! $frequency) {
-                $skipped[] = $this->skippedService($service, 'frequency_not_supported', [
-                    'frequency' => $service->operational_frequency ?: $service->frequency,
-                ]);
-
-                continue;
-            }
-
             $siteId = $service->customer_site_id ?: $contract->customer_site_id;
 
             if (! $siteId) {
@@ -60,36 +50,16 @@ class ContractProgrammingService
 
             $start = $this->date($service->starts_on) ?: $this->date($contract->start_date);
             $end = $this->date($service->ends_on) ?: $this->date($contract->end_date);
-            $dates = $this->datesForFrequency($start, $end, $frequency);
+            $dates = $this->scheduledInterventionDates($contract, $service, $start, $end, $skipped);
 
             if ($dates === []) {
-                $skipped[] = $this->skippedService($service, 'missing_or_invalid_dates', [
-                    'starts_on' => $service->starts_on?->toDateString(),
-                    'ends_on' => $service->ends_on?->toDateString(),
-                    'contract_start_date' => $contract->start_date?->toDateString(),
-                    'contract_end_date' => $contract->end_date?->toDateString(),
-                ]);
-
                 continue;
             }
 
             foreach ($dates as $date) {
                 $plannedDate = $date->toDateString();
 
-                $exists = ScheduledIntervention::query()
-                    ->where('contract_id', $contract->getKey())
-                    ->where('contract_service_id', $service->getKey())
-                    ->where('customer_site_id', $siteId)
-                    ->where('service_type_id', $service->service_type_id)
-                    ->whereDate('planned_date', $plannedDate)
-                    ->whereNull('planned_time')
-                    ->when($replace, fn ($query) => $query
-                        ->where(fn ($query) => $query
-                            ->where('status', '!=', 'planned')
-                            ->orWhereDate('planned_date', '<', $today)))
-                    ->exists();
-
-                if ($exists) {
+                if ($this->scheduledInterventionExists($contract, $service, $siteId, $plannedDate, $replace, $today)) {
                     $skipped[] = $this->skippedService($service, 'duplicate', [
                         'planned_date' => $plannedDate,
                     ]);
@@ -132,10 +102,97 @@ class ContractProgrammingService
                 'replace' => $replace,
                 'deleted_scope' => 'planned_future',
                 'supported_frequencies' => $this->supportedFrequencies(),
+                'supported_schedule_modes' => ['recurring', 'custom_months', 'manual'],
             ],
         ], $userId);
 
         return $created;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $skipped
+     * @return array<int, CarbonImmutable>
+     */
+    protected function scheduledInterventionDates(Contract $contract, ContractService $service, ?CarbonImmutable $start, ?CarbonImmutable $end, array &$skipped): array
+    {
+        $scheduleMode = $this->normalizeScheduleMode($service->operational_schedule_mode);
+
+        if ($scheduleMode === 'manual') {
+            $skipped[] = $this->skippedService($service, 'manual_schedule', [
+                'message' => 'Gli interventi saranno inseriti manualmente.',
+            ]);
+
+            return [];
+        }
+
+        if ($scheduleMode === 'custom_months') {
+            $months = $this->normalizeScheduledMonths($service->scheduled_months);
+
+            if ($months === []) {
+                $skipped[] = $this->skippedService($service, 'missing_scheduled_months');
+
+                return [];
+            }
+
+            $dates = $this->datesForCustomMonths($start, $end, $months);
+
+            if ($dates === []) {
+                $skipped[] = $this->skippedService($service, 'missing_or_invalid_dates', [
+                    'starts_on' => $service->starts_on?->toDateString(),
+                    'ends_on' => $service->ends_on?->toDateString(),
+                    'contract_start_date' => $contract->start_date?->toDateString(),
+                    'contract_end_date' => $contract->end_date?->toDateString(),
+                    'scheduled_months' => $months,
+                ]);
+            }
+
+            return $dates;
+        }
+
+        $frequency = $this->normalizeFrequency($service->operational_frequency ?: $service->frequency);
+
+        if (! $frequency) {
+            $skipped[] = $this->skippedService($service, 'frequency_not_supported', [
+                'frequency' => $service->operational_frequency ?: $service->frequency,
+            ]);
+
+            return [];
+        }
+
+        $dates = $this->datesForFrequency($start, $end, $frequency);
+
+        if ($dates === []) {
+            $skipped[] = $this->skippedService($service, 'missing_or_invalid_dates', [
+                'starts_on' => $service->starts_on?->toDateString(),
+                'ends_on' => $service->ends_on?->toDateString(),
+                'contract_start_date' => $contract->start_date?->toDateString(),
+                'contract_end_date' => $contract->end_date?->toDateString(),
+            ]);
+        }
+
+        return $dates;
+    }
+
+    protected function scheduledInterventionExists(
+        Contract $contract,
+        ContractService $service,
+        int $siteId,
+        string $plannedDate,
+        bool $replace,
+        string $today,
+    ): bool {
+        return ScheduledIntervention::query()
+            ->where('contract_id', $contract->getKey())
+            ->where('contract_service_id', $service->getKey())
+            ->where('customer_site_id', $siteId)
+            ->where('service_type_id', $service->service_type_id)
+            ->whereDate('planned_date', $plannedDate)
+            ->whereNull('planned_time')
+            ->when($replace, fn ($query) => $query
+                ->where(fn ($query) => $query
+                    ->where('status', '!=', 'planned')
+                    ->orWhereDate('planned_date', '<', $today)))
+            ->exists();
     }
 
     public function generateBillingSchedules(Contract $contract, bool $replace = false, ?int $userId = null): int
@@ -343,6 +400,82 @@ class ContractProgrammingService
         }
 
         return $dates;
+    }
+
+    /**
+     * @param  array<int, int>  $months
+     * @return array<int, CarbonImmutable>
+     */
+    protected function datesForCustomMonths(?CarbonImmutable $start, ?CarbonImmutable $end, array $months): array
+    {
+        if (! $start || ! $end || $end->lt($start)) {
+            return [];
+        }
+
+        $dates = [];
+        $anchorDay = $start->day;
+
+        for ($year = $start->year; $year <= $end->year; $year++) {
+            foreach ($months as $month) {
+                $date = $this->dateForMonth($year, $month, $anchorDay);
+
+                if ($date->lt($start) || $date->gt($end)) {
+                    continue;
+                }
+
+                $dates[] = $date;
+            }
+        }
+
+        usort($dates, fn (CarbonImmutable $first, CarbonImmutable $second): int => $first <=> $second);
+
+        return $dates;
+    }
+
+    protected function dateForMonth(int $year, int $month, int $day): CarbonImmutable
+    {
+        $monthStart = CarbonImmutable::create($year, $month, 1)->startOfDay();
+        $safeDay = min($day, $monthStart->endOfMonth()->day);
+
+        return $monthStart->setDay($safeDay);
+    }
+
+    protected function normalizeScheduleMode(?string $mode): string
+    {
+        $mode = str($mode ?: 'recurring')
+            ->lower()
+            ->replace([' ', '-'], '_')
+            ->trim()
+            ->toString();
+
+        return match ($mode) {
+            'custom_months', 'custom', 'months', 'mesi_personalizzati' => 'custom_months',
+            'manual', 'manuale' => 'manual',
+            default => 'recurring',
+        };
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected function normalizeScheduledMonths(mixed $months): array
+    {
+        if (is_string($months)) {
+            $decoded = json_decode($months, true);
+            $months = is_array($decoded) ? $decoded : explode(',', $months);
+        }
+
+        if (! is_array($months)) {
+            return [];
+        }
+
+        return collect($months)
+            ->map(fn (mixed $month): int => (int) $month)
+            ->filter(fn (int $month): bool => $month >= 1 && $month <= 12)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     protected function nextDate(CarbonImmutable $date, string $frequency): ?CarbonImmutable

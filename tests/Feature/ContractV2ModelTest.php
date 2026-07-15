@@ -804,6 +804,151 @@ class ContractV2ModelTest extends TestCase
         });
     }
 
+    public function test_contract_programming_recurring_monthly_generates_twelve_interventions(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-RECURRING-12', 'Cliente Ricorrente');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio mensile ricorrente',
+                'operational_schedule_mode' => 'recurring',
+                'operational_frequency' => 'monthly',
+                'status' => 'active',
+            ]);
+
+            $service = app(ContractProgrammingService::class);
+
+            $this->assertSame(12, $service->generateScheduledInterventions($contract->refresh()));
+            $this->assertSame(12, ScheduledIntervention::query()->count());
+        });
+    }
+
+    public function test_contract_programming_custom_months_generates_selected_months_and_is_idempotent(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-CUSTOM-MONTHS', 'Cliente Mesi');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Disinfestazioni mesi AZ',
+                'operational_schedule_mode' => 'custom_months',
+                'scheduled_months' => [2, 3, 5, 6, 7],
+                'interventions_per_year' => 5,
+                'status' => 'active',
+            ]);
+
+            $service = app(ContractProgrammingService::class);
+            $created = $service->generateScheduledInterventions($contract->refresh());
+
+            $this->assertSame(5, $created);
+            $this->assertSame([
+                '2026-02-01',
+                '2026-03-01',
+                '2026-05-01',
+                '2026-06-01',
+                '2026-07-01',
+            ], ScheduledIntervention::query()
+                ->orderBy('planned_date')
+                ->get()
+                ->map(fn (ScheduledIntervention $intervention): string => $intervention->planned_date->toDateString())
+                ->all());
+
+            $this->assertSame(0, $service->generateScheduledInterventions($contract->refresh()));
+            $this->assertSame(5, ScheduledIntervention::query()->count());
+        });
+    }
+
+    public function test_contract_programming_manual_schedule_does_not_generate_and_warns(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-MANUAL-SCHEDULE', 'Cliente Manuale');
+
+            $contract->update([
+                'start_date' => '2026-01-01',
+                'end_date' => '2026-12-31',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio manuale',
+                'operational_schedule_mode' => 'manual',
+                'status' => 'active',
+            ]);
+
+            $service = app(ContractProgrammingService::class);
+            $created = $service->generateScheduledInterventions($contract->refresh());
+            $result = $service->lastResult();
+
+            $this->assertSame(0, $created);
+            $this->assertSame(0, ScheduledIntervention::query()->count());
+            $this->assertContains('manual_schedule', collect($result['skipped_records'])->pluck('reason')->all());
+        });
+    }
+
+    public function test_contract_programming_custom_months_respects_contract_start_and_end_dates(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract, $serviceType, $site] = $this->createContractFixture($tenant, 'CTR-CUSTOM-BOUNDS', 'Cliente Limiti');
+
+            $contract->update([
+                'start_date' => '2026-03-15',
+                'end_date' => '2026-06-15',
+            ]);
+
+            ContractService::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'service_type_id' => $serviceType->getKey(),
+                'customer_site_id' => $site->getKey(),
+                'description' => 'Servizio mesi con limiti',
+                'operational_schedule_mode' => 'custom_months',
+                'scheduled_months' => [2, 3, 5, 6, 7],
+                'status' => 'active',
+            ]);
+
+            $service = app(ContractProgrammingService::class);
+
+            $this->assertSame(3, $service->generateScheduledInterventions($contract->refresh()));
+            $this->assertSame([
+                '2026-03-15',
+                '2026-05-15',
+                '2026-06-15',
+            ], ScheduledIntervention::query()
+                ->orderBy('planned_date')
+                ->get()
+                ->map(fn (ScheduledIntervention $intervention): string => $intervention->planned_date->toDateString())
+                ->all());
+        });
+    }
+
     public function test_contract_programming_replace_regenerates_only_future_planned_interventions(): void
     {
         CarbonImmutable::setTestNow('2026-06-01 09:00:00');
@@ -838,6 +983,11 @@ class ContractV2ModelTest extends TestCase
                     ->firstOrFail()
                     ->update(['status' => 'completed']);
 
+                ScheduledIntervention::query()
+                    ->whereDate('planned_date', '2026-09-01')
+                    ->firstOrFail()
+                    ->update(['status' => 'cancelled']);
+
                 ScheduledIntervention::query()->create([
                     'tenant_id' => $tenant->getKey(),
                     'contract_id' => $contract->getKey(),
@@ -851,8 +1001,8 @@ class ContractV2ModelTest extends TestCase
                 $created = $service->generateScheduledInterventions($contract->refresh(), replace: true);
                 $result = $service->lastResult();
 
-                $this->assertSame(2, $created);
-                $this->assertSame(2, $result['deleted']);
+                $this->assertSame(1, $created);
+                $this->assertSame(1, $result['deleted']);
                 $this->assertSame(1, ScheduledIntervention::query()
                     ->whereDate('planned_date', '2026-05-01')
                     ->where('status', 'planned')
@@ -861,11 +1011,15 @@ class ContractV2ModelTest extends TestCase
                     ->whereDate('planned_date', '2026-08-01')
                     ->where('status', 'completed')
                     ->count());
+                $this->assertSame(1, ScheduledIntervention::query()
+                    ->whereDate('planned_date', '2026-09-01')
+                    ->where('status', 'cancelled')
+                    ->count());
                 $this->assertSame([
                     '2026-05-01:planned',
                     '2026-07-01:planned',
                     '2026-08-01:completed',
-                    '2026-09-01:planned',
+                    '2026-09-01:cancelled',
                 ], ScheduledIntervention::query()
                     ->orderBy('planned_date')
                     ->get()

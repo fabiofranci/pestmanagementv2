@@ -155,16 +155,27 @@ class ContractResource extends TenantScopedResource
                                     ->implode(', ');
                             }),
                         TextEntry::make('operational_frequencies')
-                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Cadenza operativa' : 'Cadenze operative')
+                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Cadenza ricorrente' : 'Cadenze ricorrenti')
                             ->state(function (Contract $record): string {
                                 return static::formatFrequencyList($record->services()
                                     ->get()
+                                    ->filter(fn ($service): bool => ($service->operational_schedule_mode ?: 'recurring') === 'recurring')
                                     ->map(fn ($service): ?string => $service->operational_frequency ?: $service->frequency)
                                     ->all());
                             }),
-                        TextEntry::make('billing_frequency_summary')
-                            ->label('Cadenza fatturazione')
-                            ->state(fn (Contract $record): string => static::formatFrequency($record->billing_frequency, oneTimeLabel: 'Unica soluzione')),
+                        TextEntry::make('operational_schedule_modes')
+                            ->label(fn (Contract $record): string => static::usesSingleServiceMode($record) ? 'Programmazione interventi' : 'Programmazioni interventi')
+                            ->state(function (Contract $record): string {
+                                $schedules = $record->services()
+                                    ->get()
+                                    ->map(fn ($service): string => static::formatScheduleSummary($service))
+                                    ->filter()
+                                    ->unique()
+                                    ->values()
+                                    ->all();
+
+                                return $schedules === [] ? '-' : implode(', ', $schedules);
+                            }),
                         TextEntry::make('next_scheduled_intervention')
                             ->label('Prossimo intervento')
                             ->state(function (Contract $record): string {
@@ -214,6 +225,71 @@ class ContractResource extends TenantScopedResource
                                 ->implode("\n") ?: 'Nessun evento'),
                     ]),
             ]);
+    }
+
+    protected static function formatScheduleSummary($service): string
+    {
+        return match ($service->operational_schedule_mode ?: 'recurring') {
+            'custom_months' => 'Mesi personalizzati'.(static::formatMonthList($service->scheduled_months) !== '-'
+                ? ' ('.static::formatMonthList($service->scheduled_months).')'
+                : ''),
+            'manual' => 'Manuale',
+            default => 'Ricorrente',
+        };
+    }
+
+    protected static function monthOptions(): array
+    {
+        return [
+            1 => 'Gennaio',
+            2 => 'Febbraio',
+            3 => 'Marzo',
+            4 => 'Aprile',
+            5 => 'Maggio',
+            6 => 'Giugno',
+            7 => 'Luglio',
+            8 => 'Agosto',
+            9 => 'Settembre',
+            10 => 'Ottobre',
+            11 => 'Novembre',
+            12 => 'Dicembre',
+        ];
+    }
+
+    protected static function formatMonthList(mixed $months): string
+    {
+        $months = static::normalizeScheduledMonths($months);
+
+        if ($months === []) {
+            return '-';
+        }
+
+        return collect($months)
+            ->map(fn (int $month): string => static::monthOptions()[$month])
+            ->implode(', ');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected static function normalizeScheduledMonths(mixed $months): array
+    {
+        if (is_string($months)) {
+            $decoded = json_decode($months, true);
+            $months = is_array($decoded) ? $decoded : explode(',', $months);
+        }
+
+        if (! is_array($months)) {
+            return [];
+        }
+
+        return collect($months)
+            ->map(fn (mixed $month): int => (int) $month)
+            ->filter(fn (int $month): bool => $month >= 1 && $month <= 12)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 
     protected static function formatFrequency(?string $frequency, string $oneTimeLabel = 'Una tantum'): string

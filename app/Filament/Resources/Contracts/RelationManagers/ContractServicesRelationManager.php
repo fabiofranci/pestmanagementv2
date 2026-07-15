@@ -11,7 +11,9 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\CheckboxList;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
@@ -84,8 +86,25 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Descrizione')
                     ->required()
                     ->columnSpanFull(),
+                Select::make('operational_schedule_mode')
+                    ->label('Programmazione interventi')
+                    ->options(static::scheduleModeOptions())
+                    ->default('recurring')
+                    ->live()
+                    ->afterStateUpdated(function (Set $set, ?string $state): void {
+                        if ($state !== 'recurring') {
+                            $set('operational_frequency', null);
+                        }
+
+                        if ($state !== 'custom_months') {
+                            $set('scheduled_months', null);
+                            $set('interventions_per_year', null);
+                        }
+                    })
+                    ->native(false)
+                    ->required(),
                 Select::make('operational_frequency')
-                    ->label('Cadenza operativa')
+                    ->label('Cadenza ricorrente')
                     ->options([
                         'weekly' => 'Settimanale',
                         'fortnightly' => 'Quindicinale',
@@ -98,22 +117,29 @@ class ContractServicesRelationManager extends RelationManager
                         'one_time' => 'Una tantum',
                     ])
                     ->native(false)
+                    ->visible(fn (Get $get): bool => ($get('operational_schedule_mode') ?: 'recurring') === 'recurring')
                     ->helperText('Usata per generare gli interventi programmati dal contratto.'),
-                Select::make('billing_frequency')
-                    ->label('Cadenza fatturazione servizio')
-                    ->options([
-                        'weekly' => 'Settimanale',
-                        'fortnightly' => 'Quindicinale',
-                        'monthly' => 'Mensile',
-                        'bimonthly' => 'Bimestrale',
-                        'quarterly' => 'Trimestrale',
-                        'four_monthly' => 'Quadrimestrale',
-                        'six_monthly' => 'Semestrale',
-                        'yearly' => 'Annuale',
-                        'one_time' => 'Unica soluzione',
-                    ])
-                    ->native(false)
-                    ->helperText('Campo legacy di compatibilita. La generazione usa la cadenza fatturazione impostata sul contratto.'),
+                CheckboxList::make('scheduled_months')
+                    ->label('Mesi programmati')
+                    ->options(static::monthOptions())
+                    ->columns(3)
+                    ->visible(fn (Get $get): bool => $get('operational_schedule_mode') === 'custom_months')
+                    ->required(fn (Get $get): bool => $get('operational_schedule_mode') === 'custom_months')
+                    ->dehydrateStateUsing(fn (mixed $state, Get $get): ?array => $get('operational_schedule_mode') === 'custom_months'
+                        ? static::normalizeScheduledMonths($state)
+                        : null)
+                    ->helperText('Genera un intervento per ogni mese selezionato nel periodo del contratto o del servizio.'),
+                TextInput::make('interventions_per_year')
+                    ->label('Interventi annui')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(1)
+                    ->visible(fn (Get $get): bool => $get('operational_schedule_mode') === 'custom_months')
+                    ->helperText('Dato indicativo, utile per riportare il numero concordato nel contratto.'),
+                Placeholder::make('manual_schedule_help')
+                    ->label('Programmazione manuale')
+                    ->content('Gli interventi saranno inseriti manualmente.')
+                    ->visible(fn (Get $get): bool => $get('operational_schedule_mode') === 'manual'),
                 TextInput::make('quantity')
                     ->label('Quantita')
                     ->numeric(),
@@ -168,9 +194,21 @@ class ContractServicesRelationManager extends RelationManager
                     ->label('Area')
                     ->placeholder('-')
                     ->searchable(),
+                TextColumn::make('operational_schedule_mode')
+                    ->label('Programmazione')
+                    ->formatStateUsing(fn (?string $state): string => static::formatScheduleMode($state))
+                    ->badge()
+                    ->color(fn (?string $state): string => match ($state) {
+                        'custom_months' => 'info',
+                        'manual' => 'warning',
+                        default => 'gray',
+                    })
+                    ->searchable(),
                 TextColumn::make('operational_frequency')
-                    ->label('Cadenza operativa')
-                    ->state(fn ($record): ?string => $record->operational_frequency ?: $record->frequency)
+                    ->label('Cadenza ricorrente')
+                    ->state(fn ($record): ?string => ($record->operational_schedule_mode ?: 'recurring') === 'recurring'
+                        ? ($record->operational_frequency ?: $record->frequency)
+                        : null)
                     ->formatStateUsing(fn (?string $state): string => match ($state) {
                         'weekly' => 'Settimanale',
                         'fortnightly' => 'Quindicinale',
@@ -184,21 +222,11 @@ class ContractServicesRelationManager extends RelationManager
                         default => $state ?: '-',
                     })
                     ->placeholder('-'),
-                TextColumn::make('billing_frequency')
-                    ->label('Cadenza fatturazione servizio')
-                    ->formatStateUsing(fn (?string $state): string => match ($state) {
-                        'weekly' => 'Settimanale',
-                        'fortnightly' => 'Quindicinale',
-                        'monthly' => 'Mensile',
-                        'bimonthly' => 'Bimestrale',
-                        'quarterly' => 'Trimestrale',
-                        'four_monthly' => 'Quadrimestrale',
-                        'six_monthly' => 'Semestrale',
-                        'yearly' => 'Annuale',
-                        'one_time' => 'Unica soluzione',
-                        default => $state ?: '-',
-                    })
-                    ->placeholder('-'),
+                TextColumn::make('scheduled_months')
+                    ->label('Mesi')
+                    ->formatStateUsing(fn (mixed $state): string => static::formatMonthList($state))
+                    ->placeholder('-')
+                    ->toggleable(),
                 TextColumn::make('total_price')
                     ->label('Totale')
                     ->money(fn ($record): string => $record->currency ?: 'EUR')
@@ -286,5 +314,73 @@ class ContractServicesRelationManager extends RelationManager
             ->whereKey($ownerRecord->tenant_id)
             ->first()
             ?->usesSingleContractServiceMode() ?? false;
+    }
+
+    protected static function scheduleModeOptions(): array
+    {
+        return [
+            'recurring' => 'Ricorrente',
+            'custom_months' => 'Mesi personalizzati',
+            'manual' => 'Manuale',
+        ];
+    }
+
+    protected static function monthOptions(): array
+    {
+        return [
+            1 => 'Gennaio',
+            2 => 'Febbraio',
+            3 => 'Marzo',
+            4 => 'Aprile',
+            5 => 'Maggio',
+            6 => 'Giugno',
+            7 => 'Luglio',
+            8 => 'Agosto',
+            9 => 'Settembre',
+            10 => 'Ottobre',
+            11 => 'Novembre',
+            12 => 'Dicembre',
+        ];
+    }
+
+    protected static function formatScheduleMode(?string $mode): string
+    {
+        return static::scheduleModeOptions()[$mode ?: 'recurring'] ?? ($mode ?: 'Ricorrente');
+    }
+
+    protected static function formatMonthList(mixed $months): string
+    {
+        $months = static::normalizeScheduledMonths($months);
+
+        if ($months === []) {
+            return '-';
+        }
+
+        return collect($months)
+            ->map(fn (int $month): string => static::monthOptions()[$month])
+            ->implode(', ');
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    protected static function normalizeScheduledMonths(mixed $months): array
+    {
+        if (is_string($months)) {
+            $decoded = json_decode($months, true);
+            $months = is_array($decoded) ? $decoded : explode(',', $months);
+        }
+
+        if (! is_array($months)) {
+            return [];
+        }
+
+        return collect($months)
+            ->map(fn (mixed $month): int => (int) $month)
+            ->filter(fn (int $month): bool => $month >= 1 && $month <= 12)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
     }
 }
