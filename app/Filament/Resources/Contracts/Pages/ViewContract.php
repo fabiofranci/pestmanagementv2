@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Contracts\Pages;
 
 use App\Filament\Resources\Contracts\ContractResource;
+use App\Filament\Resources\Contracts\Pages\Concerns\RecalculatesContractTotals;
 use App\Models\Contract;
 use App\Support\Contracts\ContractNumberService;
 use App\Support\Contracts\ContractProgrammingService;
@@ -18,6 +19,8 @@ use Throwable;
 
 class ViewContract extends ViewRecord
 {
+    use RecalculatesContractTotals;
+
     protected static string $resource = ContractResource::class;
 
     protected function getHeaderActions(): array
@@ -29,6 +32,7 @@ class ViewContract extends ViewRecord
             $this->regenerateInterventionsAction(),
             $this->generateBillingSchedulesAction(),
             $this->regenerateBillingSchedulesAction(),
+            $this->recalculateContractTotalAction(),
             $this->renewContractAction(),
             $this->cancelContractAction(),
         ];

@@ -4,11 +4,11 @@ Il catalogo `billable_items` contiene materiali, accessori, contenitori, trappol
 
 Esempi:
 
-- Contenitore esca
-- Contenitore per monitoraggio
+- Contenitori esca
+- Contenitori per monitoraggio
 - Lampada UV
-- Cartello posizionamento
-- Paletto di fissaggio
+- Cartelli Posizionamento
+- Paletti di fissaggio
 - Trappola collante
 - Esca
 - Consumabile generico
@@ -69,8 +69,8 @@ Questa tabella rappresenta materiali, contenitori, trappole, lampade, cartelli, 
 
 Esempio AZ per un contratto di derattizzazione:
 
-- Contenitore esca x 10;
-- Paletto di fissaggio x 10;
+- Contenitori esca x 10;
+- Paletti di fissaggio x 10;
 - Cartelli posizionamento x 5.
 
 Il collegamento al contratto mantiene:
@@ -96,6 +96,14 @@ quantity * unit_price
 Se l'utente modifica manualmente `unit_price`, il valore manuale viene rispettato.
 
 Gli elementi fatturabili collegati al contratto non generano ancora fatture XML, non alimentano la fatturazione elettronica e restano distinti dagli extra rilevati durante gli interventi.
+
+Nel totale iniziale del contratto gli articoli attivi in `contract_billable_items` vengono sommati ai servizi contrattuali attivi. Gli extra in `intervention_billable_items` non sono inclusi nel valore iniziale del contratto.
+
+La logica di ricalcolo vive in:
+
+```text
+App\Support\Contracts\ContractTotalsService
+```
 
 ## Extra rilevati durante intervento
 
@@ -138,3 +146,5 @@ billable_items
 ```
 
 Rispetta `tenants.enabled_modules` e `tenants.module_order` come gli altri moduli tenant.
+
+Il seeder AZ `az:seed-demo-data` abilita questo modulo e crea gli 8 articoli fatturabili iniziali con `default_unit_price` e `vat_rate` non valorizzati finche i prezzi non vengono confermati.

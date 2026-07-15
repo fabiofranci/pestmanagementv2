@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\UsesTenantConnection;
+use App\Support\Contracts\ContractTotalsService;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -94,6 +95,21 @@ class Contract extends Model
     public function contractBillableItems(): HasMany
     {
         return $this->hasMany(ContractBillableItem::class);
+    }
+
+    public function servicesTotal(): float
+    {
+        return app(ContractTotalsService::class)->calculateServicesTotal($this);
+    }
+
+    public function billableItemsTotal(): float
+    {
+        return app(ContractTotalsService::class)->calculateBillableItemsTotal($this);
+    }
+
+    public function calculatedTotal(): float
+    {
+        return app(ContractTotalsService::class)->calculateContractTotal($this);
     }
 
     public function interventionBillableItems(): HasMany

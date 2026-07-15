@@ -47,6 +47,25 @@ Nel database tenant vengono creati o aggiornati:
 I contratti sono caricati come attivi, con rinnovo tacito, aumento rinnovo 4%, preavviso 30 giorni e valuta EUR.
 Il cliente ANGIPLAST non viene assegnato automaticamente a un gruppo: il campo resta `null` finche il dato non viene confermato.
 
+## Articoli fatturabili
+
+Il comando crea o aggiorna in `billable_items`:
+
+| Nome | Codice |
+| --- | --- |
+| Contenitori esca | `CONTENITORI_ESCA` |
+| Contenitori per monitoraggio | `CONTENITORI_MONITORAGGIO` |
+| Lampada UV | `LAMPADA_UV` |
+| Cartelli Posizionamento | `CARTELLI_POSIZIONAMENTO` |
+| Paletti di fissaggio | `PALETTI_FISSAGGIO` |
+| Trappola collante | `TRAPPOLA_COLLANTE` |
+| Esca | `ESCA` |
+| Consumabile generico | `CONSUMABILE_GENERICO` |
+
+`default_unit_price` e `vat_rate` restano `null` finche i listini non sono confermati.
+
+Alcuni di questi nomi restano anche in `service_types` per compatibilita con l'import iniziale. La sede corretta per materiali, accessori e consumabili e `billable_items`; la pulizia dei `service_types` sara gestita in uno step separato.
+
 ## Idempotenza
 
 Il comando puo essere eseguito piu volte. Le chiavi di aggiornamento sono:
@@ -56,8 +75,9 @@ Il comando puo essere eseguito piu volte. Le chiavi di aggiornamento sono:
 - sede: `tenant_id + customer_id + site_code`, se disponibile
 - contratto: `tenant_id + contract_number`
 - servizio contrattuale: primo record associato al contratto
+- articolo fatturabile: `tenant_id + name`, con migrazione dei vecchi nomi singolari usati nei seed precedenti
 
-La seconda esecuzione aggiorna i record esistenti senza duplicare service types, cliente, sede, contratti o servizi contrattuali.
+La seconda esecuzione aggiorna i record esistenti senza duplicare service types, cliente, sede, contratti, servizi contrattuali o articoli fatturabili.
 
 ## Cadenza fatturazione
 

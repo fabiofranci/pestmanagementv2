@@ -4,12 +4,14 @@ namespace App\Filament\Resources\Contracts\Pages;
 
 use App\Filament\Resources\Contracts\ContractResource;
 use App\Filament\Resources\Contracts\Pages\Concerns\ManagesPrimaryContractService;
+use App\Filament\Resources\Contracts\Pages\Concerns\RecalculatesContractTotals;
 use Filament\Actions\Action;
 use Filament\Resources\Pages\EditRecord;
 
 class EditContract extends EditRecord
 {
     use ManagesPrimaryContractService;
+    use RecalculatesContractTotals;
 
     protected static string $resource = ContractResource::class;
 
@@ -33,6 +35,7 @@ class EditContract extends EditRecord
     protected function getHeaderActions(): array
     {
         return [
+            $this->recalculateContractTotalAction(),
             Action::make('viewContract')
                 ->label('Riepilogo')
                 ->url(fn (): string => ContractResource::getUrl('view', ['record' => $this->getRecord()])),

@@ -123,11 +123,11 @@ class AzSeedDemoDataCommandTest extends TestCase
             );
 
             $expectedBillableItems = [
-                'Contenitore esca',
-                'Contenitore per monitoraggio',
+                'Contenitori esca',
+                'Contenitori per monitoraggio',
                 'Lampada UV',
-                'Cartello posizionamento',
-                'Paletto di fissaggio',
+                'Cartelli Posizionamento',
+                'Paletti di fissaggio',
                 'Trappola collante',
                 'Esca',
                 'Consumabile generico',
@@ -142,6 +142,26 @@ class AzSeedDemoDataCommandTest extends TestCase
                 ->whereNull('default_unit_price')
                 ->whereNull('vat_rate')
                 ->count() === 8);
+            $this->assertSame([
+                'CARTELLI_POSIZIONAMENTO',
+                'CONSUMABILE_GENERICO',
+                'CONTENITORI_ESCA',
+                'CONTENITORI_MONITORAGGIO',
+                'ESCA',
+                'LAMPADA_UV',
+                'PALETTI_FISSAGGIO',
+                'TRAPPOLA_COLLANTE',
+            ], BillableItem::query()->orderBy('code')->pluck('code')->all());
+            $this->assertTrue(BillableItem::query()
+                ->whereIn('name', [
+                    'Contenitori esca',
+                    'Lampada UV',
+                    'Cartelli Posizionamento',
+                    'Paletti di fissaggio',
+                    'Contenitori per monitoraggio',
+                ])
+                ->where('status', 'active')
+                ->count() === 5);
 
             $customer = Customer::query()
                 ->where('legacy_customer_code', '1858')

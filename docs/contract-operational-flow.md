@@ -19,6 +19,8 @@ Il contratto contiene:
 - valore totale;
 - rinnovo tacito e aumento rinnovo.
 
+Il valore totale puo essere ricalcolato dal sistema tramite `ContractTotalsService`.
+
 ## Servizio contrattuale
 
 I servizi restano in `contract_services`.
@@ -36,6 +38,8 @@ La sezione propone:
 - ricalcolo di `total_price` da `quantity * unit_price`, se entrambi sono valorizzati.
 
 Il totale resta modificabile manualmente. Al salvataggio, se esiste gia un servizio per il contratto, viene aggiornato; se non esiste, viene creato. In modalita `single_service` non viene mai creato un secondo servizio.
+
+Dopo il salvataggio del servizio principale il sistema ricalcola `contracts.total_value` sommando servizi attivi e articoli fatturabili attivi gia collegati al contratto.
 
 Nei tenant con `contract_service_mode = multiple_services`, il form contratto resta concentrato sulla testata e i servizi si gestiscono dal relation manager dopo il salvataggio.
 
@@ -88,6 +92,32 @@ Il prezzo viene proposto dal catalogo articoli e dalle eventuali condizioni clie
 Il riepilogo contratto mostra il numero degli elementi fatturabili attivi e il totale attivo. Se non sono presenti elementi, la vista resta valida e mostra valori pari a zero.
 
 Questi elementi non generano ancora fatture XML, non modificano il piano fatturazione e restano separati dagli extra rilevati durante gli interventi.
+
+Dopo create, edit o delete di un elemento fatturabile del contratto, il totale contratto viene ricalcolato.
+
+## Totale contratto
+
+Il totale contratto viene calcolato da:
+
+```text
+servizi contrattuali attivi + articoli fatturabili attivi del contratto
+```
+
+La logica vive in:
+
+```text
+App\Support\Contracts\ContractTotalsService
+```
+
+Per i servizi e gli articoli:
+
+- se `total_price` e valorizzato, viene usato quello;
+- se `total_price` manca, viene usato `quantity * unit_price` quando possibile;
+- righe non attive non vengono incluse.
+
+Gli `intervention_billable_items` non sono inclusi nel valore iniziale del contratto: sono extra successivi e restano collegati alla scadenza/fattura.
+
+In `ViewContract` e `EditContract` e disponibile l'azione `Ricalcola totale contratto`, che aggiorna `contracts.total_value` e mostra una notifica con totale servizi, totale articoli e totale contratto.
 
 ## Extra fatturabili interventi
 

@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Contracts\RelationManagers;
 use App\Models\BillableItem;
 use App\Models\Contract;
 use App\Support\Billing\ContractBillableItemPricingService;
+use App\Support\Contracts\ContractTotalsService;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
@@ -122,15 +123,19 @@ class ContractBillableItemsRelationManager extends RelationManager
                     ->sortable(),
             ])
             ->headerActions([
-                CreateAction::make(),
+                CreateAction::make()
+                    ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
+                DeleteAction::make()
+                    ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
                 ]),
             ]);
     }
@@ -157,7 +162,6 @@ class ContractBillableItemsRelationManager extends RelationManager
         $set('unit_price', $suggestedState['unit_price']);
         $set('discount_percentage', $suggestedState['discount_percentage']);
         $set('total_price', $suggestedState['total_price']);
-
     }
 
     protected function updateTotalPrice(Set $set, Get $get, mixed $unitPrice = null): void
@@ -166,5 +170,13 @@ class ContractBillableItemsRelationManager extends RelationManager
             $get('quantity'),
             $unitPrice ?? $get('unit_price'),
         ));
+    }
+
+    protected function recalculateOwnerContractTotal(): Contract
+    {
+        /** @var Contract $contract */
+        $contract = $this->getOwnerRecord();
+
+        return app(ContractTotalsService::class)->updateContractTotal($contract);
     }
 }

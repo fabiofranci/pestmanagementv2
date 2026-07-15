@@ -18,6 +18,7 @@ use App\Filament\Resources\Contracts\Tables\ContractsTable;
 use App\Filament\Resources\TenantScopedResource;
 use App\Models\Contract;
 use App\Models\Tenant;
+use App\Support\Contracts\ContractTotalsService;
 use App\Support\Tenancy\CurrentTenant;
 use App\Support\Tenancy\TenantModules;
 use BackedEnum;
@@ -96,6 +97,18 @@ class ContractResource extends TenantScopedResource
                             ->label('Valore totale')
                             ->money(fn (Contract $record): string => $record->currency ?: 'EUR')
                             ->placeholder('-'),
+                        TextEntry::make('calculated_services_total')
+                            ->label('Totale servizi')
+                            ->state(fn (Contract $record): float => app(ContractTotalsService::class)->calculateServicesTotal($record))
+                            ->money(fn (Contract $record): string => $record->currency ?: 'EUR'),
+                        TextEntry::make('calculated_billable_items_total')
+                            ->label('Totale articoli fatturabili')
+                            ->state(fn (Contract $record): float => app(ContractTotalsService::class)->calculateBillableItemsTotal($record))
+                            ->money(fn (Contract $record): string => $record->currency ?: 'EUR'),
+                        TextEntry::make('calculated_contract_total')
+                            ->label('Totale contratto calcolato')
+                            ->state(fn (Contract $record): float => app(ContractTotalsService::class)->calculateContractTotal($record))
+                            ->money(fn (Contract $record): string => $record->currency ?: 'EUR'),
                         TextEntry::make('payment_terms')
                             ->label('Condizioni pagamento')
                             ->placeholder('-'),

@@ -49,14 +49,46 @@ class SeedAzDemoData extends Command
     ];
 
     private const BILLABLE_ITEMS = [
-        'Contenitore esca',
-        'Contenitore per monitoraggio',
-        'Lampada UV',
-        'Cartello posizionamento',
-        'Paletto di fissaggio',
-        'Trappola collante',
-        'Esca',
-        'Consumabile generico',
+        [
+            'name' => 'Contenitori esca',
+            'code' => 'CONTENITORI_ESCA',
+            'legacy_names' => ['Contenitore esca'],
+        ],
+        [
+            'name' => 'Contenitori per monitoraggio',
+            'code' => 'CONTENITORI_MONITORAGGIO',
+            'legacy_names' => ['Contenitore per monitoraggio'],
+        ],
+        [
+            'name' => 'Lampada UV',
+            'code' => 'LAMPADA_UV',
+            'legacy_names' => [],
+        ],
+        [
+            'name' => 'Cartelli Posizionamento',
+            'code' => 'CARTELLI_POSIZIONAMENTO',
+            'legacy_names' => ['Cartello posizionamento'],
+        ],
+        [
+            'name' => 'Paletti di fissaggio',
+            'code' => 'PALETTI_FISSAGGIO',
+            'legacy_names' => ['Paletto di fissaggio'],
+        ],
+        [
+            'name' => 'Trappola collante',
+            'code' => 'TRAPPOLA_COLLANTE',
+            'legacy_names' => [],
+        ],
+        [
+            'name' => 'Esca',
+            'code' => 'ESCA',
+            'legacy_names' => [],
+        ],
+        [
+            'name' => 'Consumabile generico',
+            'code' => 'CONSUMABILE_GENERICO',
+            'legacy_names' => [],
+        ],
     ];
 
     private const CONTRACTS = [
@@ -179,22 +211,38 @@ class SeedAzDemoData extends Command
 
     private function seedBillableItems(Tenant $tenant): void
     {
-        foreach (self::BILLABLE_ITEMS as $name) {
-            /** @var BillableItem $billableItem */
-            $billableItem = BillableItem::query()->updateOrCreate(
-                [
+        foreach (self::BILLABLE_ITEMS as $itemData) {
+            /** @var array{name: string, code: string, legacy_names: array<int, string>} $itemData */
+            $billableItem = $this->findExistingBillableItem($tenant, $itemData['name'], $itemData['legacy_names'])
+                ?? new BillableItem([
                     'tenant_id' => $tenant->getKey(),
-                    'name' => $name,
-                ],
-                $this->tenantModelValues(new BillableItem, 'billable_items', [
-                    'default_unit_price' => null,
-                    'vat_rate' => null,
-                    'status' => 'active',
-                ]),
-            );
+                ]);
 
-            $this->report($billableItem, "articolo fatturabile {$name}");
+            $billableItem->fill($this->tenantModelValues(new BillableItem, 'billable_items', [
+                'tenant_id' => $tenant->getKey(),
+                'name' => $itemData['name'],
+                'code' => $itemData['code'],
+                'default_unit_price' => null,
+                'vat_rate' => null,
+                'status' => 'active',
+            ]));
+
+            $billableItem->save();
+
+            $this->report($billableItem, "articolo fatturabile {$itemData['name']}");
         }
+    }
+
+    /**
+     * @param  array<int, string>  $legacyNames
+     */
+    private function findExistingBillableItem(Tenant $tenant, string $name, array $legacyNames): ?BillableItem
+    {
+        return BillableItem::query()
+            ->where('tenant_id', $tenant->getKey())
+            ->whereIn('name', array_values(array_unique([$name, ...$legacyNames])))
+            ->orderByRaw('case when name = ? then 0 else 1 end', [$name])
+            ->first();
     }
 
     /**

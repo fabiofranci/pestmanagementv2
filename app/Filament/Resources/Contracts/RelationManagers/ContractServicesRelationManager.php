@@ -3,8 +3,10 @@
 namespace App\Filament\Resources\Contracts\RelationManagers;
 
 use App\Models\Area;
+use App\Models\Contract;
 use App\Models\CustomerSite;
 use App\Models\Tenant;
+use App\Support\Contracts\ContractTotalsService;
 use App\Support\Tenancy\CurrentTenant;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\CreateAction;
@@ -142,13 +144,18 @@ class ContractServicesRelationManager extends RelationManager
                     ->visible(fn (Get $get): bool => $get('operational_schedule_mode') === 'manual'),
                 TextInput::make('quantity')
                     ->label('Quantita')
-                    ->numeric(),
+                    ->numeric()
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, Get $get): mixed => $this->updateTotalPrice($set, $get)),
                 TextInput::make('unit_price')
                     ->label('Prezzo unitario')
-                    ->numeric(),
+                    ->numeric()
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, Get $get): mixed => $this->updateTotalPrice($set, $get)),
                 TextInput::make('total_price')
                     ->label('Totale')
-                    ->numeric(),
+                    ->numeric()
+                    ->helperText('Calcolato come quantita x prezzo unitario. Resta modificabile manualmente.'),
                 TextInput::make('currency')
                     ->label('Valuta')
                     ->default('EUR')
@@ -278,17 +285,41 @@ class ContractServicesRelationManager extends RelationManager
                             ->send();
 
                         $action->halt();
-                    }),
+                    })
+                    ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
             ])
             ->recordActions([
-                EditAction::make(),
-                DeleteAction::make(),
+                EditAction::make()
+                    ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
+                DeleteAction::make()
+                    ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DeleteBulkAction::make(),
+                    DeleteBulkAction::make()
+                        ->after(fn (): Contract => $this->recalculateOwnerContractTotal()),
                 ]),
             ]);
+    }
+
+    protected function updateTotalPrice(Set $set, Get $get): void
+    {
+        $quantity = $get('quantity');
+        $unitPrice = $get('unit_price');
+
+        if (blank($quantity) || blank($unitPrice)) {
+            return;
+        }
+
+        $set('total_price', round(((float) $quantity) * ((float) $unitPrice), 2));
+    }
+
+    protected function recalculateOwnerContractTotal(): Contract
+    {
+        /** @var Contract $contract */
+        $contract = $this->getOwnerRecord();
+
+        return app(ContractTotalsService::class)->updateContractTotal($contract);
     }
 
     protected function canCreateAnotherService(): bool

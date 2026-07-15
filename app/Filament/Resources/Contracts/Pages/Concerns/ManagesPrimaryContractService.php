@@ -6,6 +6,7 @@ use App\Models\Contract;
 use App\Models\ContractService;
 use App\Models\ServiceType;
 use App\Models\Tenant;
+use App\Support\Contracts\ContractTotalsService;
 use App\Support\Tenancy\CurrentTenant;
 use Illuminate\Support\Carbon;
 
@@ -85,6 +86,9 @@ trait ManagesPrimaryContractService
 
         $service->fill($data);
         $service->save();
+
+        app(ContractTotalsService::class)->updateContractTotal($contract);
+        $this->record = $contract->refresh();
     }
 
     protected function usesSingleContractServiceMode(Contract $contract): bool
