@@ -57,11 +57,50 @@ La logica e centralizzata in:
 App\Support\Billing\BillableItemPricingService
 ```
 
+## Uso nei contratti
+
+Gli articoli fatturabili possono essere collegati ai contratti tramite:
+
+```text
+contract_billable_items
+```
+
+Questa tabella rappresenta materiali, contenitori, trappole, lampade, cartelli, paletti, esche o altri articoli previsti dalla configurazione economica del contratto.
+
+Esempio AZ per un contratto di derattizzazione:
+
+- Contenitore esca x 10;
+- Paletto di fissaggio x 10;
+- Cartelli posizionamento x 5.
+
+Il collegamento al contratto mantiene:
+
+- articolo;
+- quantita;
+- prezzo unitario;
+- sconto percentuale informativo/manuale;
+- totale;
+- note;
+- stato.
+
+Quando viene scelto un articolo nel contratto, il sistema propone il prezzo usando `BillableItemPricingService` e il cliente del contratto.
+
+Il prezzo unitario salvato su `contract_billable_items.unit_price` rappresenta il prezzo finale unitario gia applicato al cliente. Per questo motivo `discount_percentage` non viene riapplicato nel totale, ma resta disponibile come dato informativo o manuale.
+
+Il totale e calcolato come:
+
+```text
+quantity * unit_price
+```
+
+Se l'utente modifica manualmente `unit_price`, il valore manuale viene rispettato.
+
+Gli elementi fatturabili collegati al contratto non generano ancora fatture XML, non alimentano la fatturazione elettronica e non sono ancora usati negli interventi extra.
+
 ## Uso futuro
 
-Il catalogo potra essere collegato a contratti e interventi per:
+Il catalogo potra essere collegato anche a interventi per:
 
-- aggiungere materiali/accessori fatturabili a un contratto;
 - valorizzare consumabili usati durante un intervento;
 - mantenere coerenza dei prezzi nel tempo;
 - applicare listini o scontistiche cliente senza duplicare servizi operativi.

@@ -91,6 +91,11 @@ class Contract extends Model
         return $this->hasMany(ContractBillingSchedule::class);
     }
 
+    public function contractBillableItems(): HasMany
+    {
+        return $this->hasMany(ContractBillableItem::class);
+    }
+
     public function documents(): MorphMany
     {
         return $this->morphMany(Document::class, 'documentable');

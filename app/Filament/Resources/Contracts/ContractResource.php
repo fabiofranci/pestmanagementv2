@@ -6,6 +6,7 @@ use App\Filament\Resources\Contracts\Pages\CreateContract;
 use App\Filament\Resources\Contracts\Pages\EditContract;
 use App\Filament\Resources\Contracts\Pages\ListContracts;
 use App\Filament\Resources\Contracts\Pages\ViewContract;
+use App\Filament\Resources\Contracts\RelationManagers\ContractBillableItemsRelationManager;
 use App\Filament\Resources\Contracts\RelationManagers\ContractBillingSchedulesRelationManager;
 use App\Filament\Resources\Contracts\RelationManagers\ContractEventsRelationManager;
 use App\Filament\Resources\Contracts\RelationManagers\ContractServicesRelationManager;
@@ -205,6 +206,17 @@ class ContractResource extends TenantScopedResource
 
                                 return $schedule->due_date?->format('d/m/Y').' - '.$schedule->description;
                             }),
+                        TextEntry::make('active_billable_items_count')
+                            ->label('Elementi fatturabili attivi')
+                            ->state(fn (Contract $record): int => $record->contractBillableItems()
+                                ->where('status', 'active')
+                                ->count()),
+                        TextEntry::make('active_billable_items_total')
+                            ->label('Totale elementi fatturabili')
+                            ->state(fn (Contract $record): float => (float) $record->contractBillableItems()
+                                ->where('status', 'active')
+                                ->sum('total_price'))
+                            ->money(fn (Contract $record): string => $record->currency ?: 'EUR'),
                     ])
                     ->columns(3),
                 Section::make('Note')
@@ -338,6 +350,7 @@ class ContractResource extends TenantScopedResource
     {
         return [
             ContractServicesRelationManager::class,
+            ContractBillableItemsRelationManager::class,
             ScheduledInterventionsRelationManager::class,
             ContractBillingSchedulesRelationManager::class,
             DocumentsRelationManager::class,

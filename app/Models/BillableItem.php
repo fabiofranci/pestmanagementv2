@@ -36,4 +36,9 @@ class BillableItem extends Model
     {
         return $this->hasMany(CustomerBillableItemPrice::class);
     }
+
+    public function contractBillableItems(): HasMany
+    {
+        return $this->hasMany(ContractBillableItem::class);
+    }
 }

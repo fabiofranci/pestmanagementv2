@@ -61,6 +61,34 @@ Esempio AZ: per 5 disinfestazioni annue in Febbraio, Marzo, Maggio, Giugno e Lug
 
 La generazione crea record in `scheduled_interventions` senza duplicare date gia presenti. La rigenerazione elimina solo interventi futuri con stato `planned`; non elimina interventi `completed` o `cancelled`.
 
+## Elementi fatturabili
+
+Gli elementi fatturabili previsti dal contratto vivono in:
+
+```text
+contract_billable_items
+```
+
+Sono indipendenti da `contract_service_mode`: funzionano sia per tenant con un solo servizio per contratto sia per tenant con piu servizi.
+
+Un servizio contrattuale descrive la prestazione operativa, per esempio derattizzazione o monitoraggio. Un elemento fatturabile descrive invece un articolo economico collegato al contratto, per esempio contenitori, trappole, lampade, cartelli, paletti, esche o materiali.
+
+Nel contratto la scheda `Elementi fatturabili` permette di inserire:
+
+- articolo;
+- quantita;
+- prezzo unitario;
+- sconto;
+- totale;
+- note;
+- stato.
+
+Il prezzo viene proposto dal catalogo articoli e dalle eventuali condizioni cliente. Il prezzo unitario sul contratto e il prezzo finale unitario applicato; lo sconto resta informativo/manuale e non viene applicato una seconda volta nel totale.
+
+Il riepilogo contratto mostra il numero degli elementi fatturabili attivi e il totale attivo. Se non sono presenti elementi, la vista resta valida e mostra valori pari a zero.
+
+Questi elementi non generano ancora fatture XML, non modificano il piano fatturazione e non sono ancora collegati agli interventi extra.
+
 ## Piano fatturazione
 
 La cadenza fatturazione vive sul contratto:
