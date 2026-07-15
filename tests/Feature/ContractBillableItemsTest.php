@@ -153,6 +153,49 @@ class ContractBillableItemsTest extends TestCase
         });
     }
 
+    public function test_contract_billable_item_calculates_discounted_total(): void
+    {
+        $tenant = $this->createTenant();
+
+        $this->withinTenant($tenant, function (Tenant $tenant): void {
+            [$contract] = $this->createContractFixture($tenant, 'CTR-DISCOUNTED-TOTAL');
+            $item = $this->createBillableItem($tenant, 'Contenitori esca', 25);
+
+            $discounted = ContractBillableItem::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'billable_item_id' => $item->getKey(),
+                'quantity' => 10,
+                'unit_price' => 25,
+                'discount_percentage' => 10,
+                'status' => 'active',
+            ]);
+
+            $withoutDiscount = ContractBillableItem::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'billable_item_id' => $item->getKey(),
+                'quantity' => 10,
+                'unit_price' => 25,
+                'status' => 'active',
+            ]);
+
+            $halfDiscount = ContractBillableItem::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'contract_id' => $contract->getKey(),
+                'billable_item_id' => $item->getKey(),
+                'quantity' => 2,
+                'unit_price' => 100,
+                'discount_percentage' => 50,
+                'status' => 'active',
+            ]);
+
+            $this->assertSame('225.00', $discounted->refresh()->total_price);
+            $this->assertSame('250.00', $withoutDiscount->refresh()->total_price);
+            $this->assertSame('100.00', $halfDiscount->refresh()->total_price);
+        });
+    }
+
     public function test_customer_custom_price_is_proposed(): void
     {
         $tenant = $this->createTenant();
@@ -212,7 +255,7 @@ class ContractBillableItemsTest extends TestCase
             $state = app(ContractBillableItemPricingService::class)
                 ->suggestedStateForContract($contract, $item, 3);
 
-            $this->assertSame(18.0, $state['unit_price']);
+            $this->assertSame(20.0, $state['unit_price']);
             $this->assertSame(10.0, $state['discount_percentage']);
             $this->assertSame(54.0, $state['total_price']);
 
@@ -227,7 +270,7 @@ class ContractBillableItemsTest extends TestCase
                 'status' => 'active',
             ]);
 
-            $this->assertSame('18.00', $line->unit_price);
+            $this->assertSame('20.00', $line->unit_price);
             $this->assertSame('10.00', $line->discount_percentage);
             $this->assertSame('54.00', $line->total_price);
         });
@@ -252,7 +295,7 @@ class ContractBillableItemsTest extends TestCase
             ]);
 
             $this->assertSame('13.00', $line->unit_price);
-            $this->assertSame('65.00', $line->refresh()->total_price);
+            $this->assertSame('58.50', $line->refresh()->total_price);
 
             $contract->delete();
 

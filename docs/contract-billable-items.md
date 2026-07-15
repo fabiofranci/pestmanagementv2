@@ -52,7 +52,7 @@ Quando si seleziona un articolo nel contratto, il sistema recupera il cliente de
 App\Support\Billing\BillableItemPricingService
 ```
 
-Se esiste un prezzo personalizzato cliente, viene proposto quello. Se esiste uno sconto cliente e l'articolo ha un prezzo standard, viene proposto il prezzo gia scontato. In assenza di regole cliente, viene proposto il prezzo standard dell'articolo.
+Se esiste un prezzo personalizzato cliente, viene proposto quello e lo sconto non viene compilato. Se esiste uno sconto cliente e l'articolo ha un prezzo standard, viene proposto il prezzo standard come prezzo unitario lordo e lo sconto viene compilato in `discount_percentage`. In assenza di regole cliente, viene proposto il prezzo standard dell'articolo.
 
 La logica specifica per lo stato del form contratto e incapsulata in:
 
@@ -65,11 +65,13 @@ App\Support\Billing\ContractBillableItemPricingService
 La scelta funzionale e:
 
 ```text
-unit_price = prezzo finale unitario applicato al cliente
-total_price = quantity * unit_price
+unit_price = prezzo unitario lordo/listino applicato al cliente
+total_price = quantity * unit_price * (1 - discount_percentage / 100)
 ```
 
-`discount_percentage` resta informativo o manuale. Non viene applicato una seconda volta al totale, cosi si evita il doppio sconto.
+Se `discount_percentage` e vuoto o pari a zero, `total_price` e `quantity * unit_price`.
+
+`discount_percentage` viene applicato al totale riga. Il sistema evita il doppio sconto usando il prezzo lordo come `unit_price` quando la regola cliente e basata su percentuale, mentre usa il `custom_unit_price` senza sconto quando la regola cliente e un prezzo personalizzato.
 
 Se l'utente modifica manualmente `unit_price`, il valore manuale viene rispettato.
 

@@ -18,6 +18,7 @@ class BillableItemPricingService
      *     base_price: float|null,
      *     discount_percentage: float|null,
      *     custom_unit_price: float|null,
+     *     unit_price: float|null,
      *     final_price: float|null,
      *     pricing_source: string
      * }
@@ -34,6 +35,7 @@ class BillableItemPricingService
                 'base_price' => $basePrice,
                 'discount_percentage' => $discountPercentage,
                 'custom_unit_price' => $customUnitPrice,
+                'unit_price' => $customUnitPrice,
                 'final_price' => $customUnitPrice,
                 'pricing_source' => 'custom',
             ];
@@ -44,6 +46,7 @@ class BillableItemPricingService
                 'base_price' => $basePrice,
                 'discount_percentage' => $discountPercentage,
                 'custom_unit_price' => null,
+                'unit_price' => $basePrice,
                 'final_price' => round($basePrice * (1 - ($discountPercentage / 100)), 2),
                 'pricing_source' => 'discount',
             ];
@@ -53,6 +56,7 @@ class BillableItemPricingService
             'base_price' => $basePrice,
             'discount_percentage' => $discountPercentage,
             'custom_unit_price' => null,
+            'unit_price' => $basePrice,
             'final_price' => $basePrice,
             'pricing_source' => 'standard',
         ];

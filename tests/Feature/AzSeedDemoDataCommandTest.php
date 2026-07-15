@@ -98,17 +98,12 @@ class AzSeedDemoDataCommandTest extends TestCase
                 'Disinfestazione Alati',
                 'Disinfestazione Striscianti',
                 'Disinfezione',
-                'Contenitori esca',
                 'Monit. Insetti striscianti',
                 'Monit. Insetti alati',
                 'Servizio Multiplo',
-                'Oidi',
+                'Ofidi',
                 'Monit. Insetti Strisc. e Roditori',
                 'Derattizzazione - Monit. Roditori',
-                'Lampada UV',
-                'Cartelli Posizionamento',
-                'Paletti di fissaggio',
-                'Contenitori per monitoraggio',
                 'Servizio Antilarvale',
                 'Servizio contro Formiche',
                 'Servizio contro Scarafaggi',
@@ -116,7 +111,7 @@ class AzSeedDemoDataCommandTest extends TestCase
                 'Fumigazione',
             ];
 
-            $this->assertSame(20, ServiceType::query()->count());
+            $this->assertSame(15, ServiceType::query()->count());
             $this->assertEqualsCanonicalizing(
                 $expectedServiceTypes,
                 ServiceType::query()->pluck('name')->all(),

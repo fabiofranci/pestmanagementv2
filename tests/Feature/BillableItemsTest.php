@@ -144,6 +144,7 @@ class BillableItemsTest extends TestCase
 
             $this->assertSame(100.0, $pricing->priceForCustomer($item, $customer));
             $this->assertSame('standard', $pricing->priceDetailsForCustomer($item, $customer)['pricing_source']);
+            $this->assertSame(100.0, $pricing->priceDetailsForCustomer($item, $customer)['unit_price']);
 
             CustomerBillableItemPrice::query()->create([
                 'tenant_id' => $tenant->getKey(),
@@ -153,7 +154,9 @@ class BillableItemsTest extends TestCase
             ]);
 
             $this->assertSame(72.5, $pricing->priceForCustomer($item, $customer));
-            $this->assertSame('custom', $pricing->priceDetailsForCustomer($item, $customer)['pricing_source']);
+            $customDetails = $pricing->priceDetailsForCustomer($item, $customer);
+            $this->assertSame('custom', $customDetails['pricing_source']);
+            $this->assertSame(72.5, $customDetails['unit_price']);
 
             CustomerBillableItemPrice::query()
                 ->where('customer_id', $customer->getKey())
@@ -163,8 +166,12 @@ class BillableItemsTest extends TestCase
                     'discount_percentage' => 15,
                 ]);
 
-            $this->assertSame(85.0, $pricing->priceForCustomer($item->refresh(), $customer));
-            $this->assertSame('discount', $pricing->priceDetailsForCustomer($item, $customer)['pricing_source']);
+            $discountDetails = $pricing->priceDetailsForCustomer($item->refresh(), $customer);
+            $this->assertSame(85.0, $pricing->priceForCustomer($item, $customer));
+            $this->assertSame('discount', $discountDetails['pricing_source']);
+            $this->assertSame(100.0, $discountDetails['unit_price']);
+            $this->assertSame(15.0, $discountDetails['discount_percentage']);
+            $this->assertSame(85.0, $discountDetails['final_price']);
 
             CustomerBillableItemPrice::query()
                 ->where('customer_id', $customer->getKey())
@@ -177,6 +184,7 @@ class BillableItemsTest extends TestCase
             $details = $pricing->priceDetailsForCustomer($item->refresh(), $customer);
 
             $this->assertSame(70.0, $details['final_price']);
+            $this->assertSame(70.0, $details['unit_price']);
             $this->assertSame('custom', $details['pricing_source']);
         });
     }

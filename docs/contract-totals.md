@@ -28,8 +28,10 @@ Metodi principali:
 Per ogni riga:
 
 - se `total_price` e valorizzato, usa `total_price`;
-- se `total_price` manca e sono valorizzati `quantity` e `unit_price`, usa `quantity * unit_price`;
+- se `total_price` manca e sono valorizzati `quantity` e `unit_price`, usa `quantity * unit_price * (1 - discount_percentage / 100)`;
 - altrimenti la riga vale zero.
+
+Per gli articoli fatturabili di contratto, `unit_price` e il prezzo unitario lordo e `discount_percentage` viene applicato solo nel calcolo della riga. Se lo sconto e vuoto o pari a zero, il fallback resta `quantity * unit_price`.
 
 `contract_total` e:
 

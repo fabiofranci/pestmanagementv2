@@ -49,7 +49,7 @@ class ContractBillableItemsRelationManager extends RelationManager
                     ->live()
                     ->afterStateUpdated(fn (Set $set, Get $get): mixed => $this->updateTotalPrice($set, $get)),
                 TextInput::make('unit_price')
-                    ->label('Prezzo unitario')
+                    ->label('Prezzo unitario lordo')
                     ->numeric()
                     ->live()
                     ->afterStateUpdated(fn (Set $set, Get $get): mixed => $this->updateTotalPrice($set, $get)),
@@ -57,11 +57,13 @@ class ContractBillableItemsRelationManager extends RelationManager
                     ->label('Sconto %')
                     ->numeric()
                     ->suffix('%')
-                    ->helperText('Informativo: il prezzo unitario rappresenta il prezzo finale applicato al contratto.'),
+                    ->live()
+                    ->afterStateUpdated(fn (Set $set, Get $get): mixed => $this->updateTotalPrice($set, $get))
+                    ->helperText('Lo sconto viene applicato al totale riga: quantita x prezzo unitario meno sconto.'),
                 TextInput::make('total_price')
                     ->label('Totale')
                     ->numeric()
-                    ->helperText('Calcolato come quantita x prezzo unitario. Resta modificabile manualmente.'),
+                    ->helperText('Calcolato come quantita x prezzo unitario meno sconto. Resta modificabile manualmente.'),
                 Select::make('status')
                     ->label('Stato')
                     ->options([
@@ -90,7 +92,7 @@ class ContractBillableItemsRelationManager extends RelationManager
                     ->numeric(decimalPlaces: 2)
                     ->sortable(),
                 TextColumn::make('unit_price')
-                    ->label('Prezzo unitario')
+                    ->label('Prezzo unitario lordo')
                     ->money('EUR')
                     ->placeholder('-')
                     ->sortable(),
@@ -169,6 +171,7 @@ class ContractBillableItemsRelationManager extends RelationManager
         $set('total_price', app(ContractBillableItemPricingService::class)->calculateTotal(
             $get('quantity'),
             $unitPrice ?? $get('unit_price'),
+            $get('discount_percentage'),
         ));
     }
 

@@ -21,7 +21,9 @@ class ContractTotalsService
         return round((float) $contract->contractBillableItems()
             ->where('status', 'active')
             ->get()
-            ->sum(fn (ContractBillableItem $item): float => $this->lineTotal($item->total_price, $item->quantity, $item->unit_price)), 2);
+            ->sum(fn (ContractBillableItem $item): float => filled($item->total_price)
+                ? (float) $item->total_price
+                : $item->calculateTotalPrice()), 2);
     }
 
     public function calculateContractTotal(Contract $contract): float

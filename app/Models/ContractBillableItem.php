@@ -35,9 +35,19 @@ class ContractBillableItem extends Model
     {
         static::saving(function (ContractBillableItem $item): void {
             if (blank($item->total_price) && filled($item->quantity) && filled($item->unit_price)) {
-                $item->total_price = round(((float) $item->quantity) * ((float) $item->unit_price), 2);
+                $item->total_price = $item->calculateTotalPrice();
             }
         });
+    }
+
+    public function calculateTotalPrice(): float
+    {
+        $quantity = blank($this->quantity) ? 0 : (float) $this->quantity;
+        $unitPrice = blank($this->unit_price) ? 0 : (float) $this->unit_price;
+        $discountPercentage = blank($this->discount_percentage) ? 0 : (float) $this->discount_percentage;
+        $baseTotal = $quantity * $unitPrice;
+
+        return round($baseTotal - ($baseTotal * ($discountPercentage / 100)), 2);
     }
 
     public function contract(): BelongsTo

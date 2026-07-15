@@ -97,9 +97,10 @@ class ContractTotalsServiceTest extends TestCase
 
             $this->createContractBillableItem($tenant, $contract, 'Contenitori esca', totalPrice: 30);
             $this->createContractBillableItem($tenant, $contract, 'Cartelli Posizionamento', quantity: 4, unitPrice: 5);
+            $this->createContractBillableItem($tenant, $contract, 'Lampada UV scontata', quantity: 10, unitPrice: 25, discountPercentage: 10);
             $this->createContractBillableItem($tenant, $contract, 'Extra inattivo', totalPrice: 500, status: 'inactive');
 
-            $this->assertSame(50.0, app(ContractTotalsService::class)->calculateBillableItemsTotal($contract));
+            $this->assertSame(275.0, app(ContractTotalsService::class)->calculateBillableItemsTotal($contract));
         });
     }
 
@@ -273,6 +274,7 @@ class ContractTotalsServiceTest extends TestCase
         ?float $totalPrice = null,
         ?float $quantity = null,
         ?float $unitPrice = null,
+        ?float $discountPercentage = null,
         string $status = 'active',
     ): ContractBillableItem {
         $item = BillableItem::query()->create([
@@ -287,6 +289,7 @@ class ContractTotalsServiceTest extends TestCase
             'billable_item_id' => $item->getKey(),
             'quantity' => $quantity ?? 1,
             'unit_price' => $unitPrice,
+            'discount_percentage' => $discountPercentage,
             'total_price' => $totalPrice,
             'status' => $status,
         ]);

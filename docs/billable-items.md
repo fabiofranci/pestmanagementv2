@@ -77,21 +77,25 @@ Il collegamento al contratto mantiene:
 
 - articolo;
 - quantita;
-- prezzo unitario;
-- sconto percentuale informativo/manuale;
+- prezzo unitario lordo;
+- sconto percentuale applicato al totale riga;
 - totale;
 - note;
 - stato.
 
 Quando viene scelto un articolo nel contratto, il sistema propone il prezzo usando `BillableItemPricingService` e il cliente del contratto.
 
-Il prezzo unitario salvato su `contract_billable_items.unit_price` rappresenta il prezzo finale unitario gia applicato al cliente. Per questo motivo `discount_percentage` non viene riapplicato nel totale, ma resta disponibile come dato informativo o manuale.
+Il prezzo unitario salvato su `contract_billable_items.unit_price` rappresenta il prezzo lordo/listino applicabile al cliente. Se la regola cliente prevede solo uno sconto, il sistema propone il prezzo standard come `unit_price` e lo sconto in `discount_percentage`, evitando di salvare un prezzo gia scontato e poi scontarlo di nuovo.
+
+Se la regola cliente prevede invece un `custom_unit_price`, quel prezzo viene proposto come prezzo unitario lordo effettivo e `discount_percentage` resta vuoto.
 
 Il totale e calcolato come:
 
 ```text
-quantity * unit_price
+quantity * unit_price * (1 - discount_percentage / 100)
 ```
+
+Se `discount_percentage` e vuoto o pari a zero, il totale resta `quantity * unit_price`.
 
 Se l'utente modifica manualmente `unit_price`, il valore manuale viene rispettato.
 
