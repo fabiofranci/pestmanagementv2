@@ -1,6 +1,6 @@
 # Personalizzazione Menu Tenant
 
-Data aggiornamento: 2026-06-22
+Data aggiornamento: 2026-07-15
 
 Pest Management V2 permette di personalizzare i moduli visibili nel menu Filament e il loro ordine in base al tenant corrente.
 
@@ -68,6 +68,7 @@ Stringhe stabili disponibili:
 ```text
 dashboard
 customers
+customer_groups
 customer_sites
 contracts
 areas
@@ -94,6 +95,7 @@ In alternativa, lista completa esplicita:
 [
   "dashboard",
   "customers",
+  "customer_groups",
   "customer_sites",
   "contracts",
   "areas",
@@ -117,7 +119,9 @@ Configurazione possibile per AZ, orientata al lavoro su contratti e anagrafiche 
   "dashboard",
   "contracts",
   "customer_sites",
-  "customers"
+  "customers",
+  "customer_groups",
+  "service_types"
 ]
 ```
 
@@ -128,7 +132,9 @@ Configurazione possibile per AZ, orientata al lavoro su contratti e anagrafiche 
   "dashboard",
   "contracts",
   "customer_sites",
-  "customers"
+  "customers",
+  "customer_groups",
+  "service_types"
 ]
 ```
 

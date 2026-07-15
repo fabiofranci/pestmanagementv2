@@ -28,6 +28,11 @@ class CustomersTable
                 TextColumn::make('name')
                     ->label('Nome')
                     ->searchable(),
+                TextColumn::make('customerGroup.name')
+                    ->label('Gruppo')
+                    ->placeholder('-')
+                    ->searchable()
+                    ->toggleable(),
                 TextColumn::make('vat_number')
                     ->label('P. IVA')
                     ->placeholder('-')

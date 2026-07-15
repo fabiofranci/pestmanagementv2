@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\Customers\Schemas;
 
 use App\Models\Customer;
+use App\Models\CustomerGroup;
 use App\Support\Tenancy\CurrentTenant;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
@@ -89,6 +90,15 @@ class CustomerForm
                     ]),
                 Section::make('Gestione interna')
                     ->schema([
+                        Select::make('customer_group_id')
+                            ->label('Gruppo')
+                            ->options(fn (): array => CustomerGroup::query()
+                                ->orderBy('name')
+                                ->pluck('name', 'id')
+                                ->all())
+                            ->searchable()
+                            ->preload()
+                            ->native(false),
                         Select::make('status')
                             ->label('Stato')
                             ->options([

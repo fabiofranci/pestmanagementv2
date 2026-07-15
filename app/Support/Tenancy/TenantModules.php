@@ -10,6 +10,8 @@ class TenantModules
 
     public const CUSTOMERS = 'customers';
 
+    public const CUSTOMER_GROUPS = 'customer_groups';
+
     public const CUSTOMER_SITES = 'customer_sites';
 
     public const CONTRACTS = 'contracts';
@@ -29,6 +31,7 @@ class TenantModules
         return [
             self::DASHBOARD => 'Dashboard',
             self::CUSTOMERS => 'Clienti',
+            self::CUSTOMER_GROUPS => 'Gruppi clienti',
             self::CUSTOMER_SITES => 'Sedi cliente',
             self::CONTRACTS => 'Contratti',
             self::AREAS => 'Aree',
@@ -44,6 +47,7 @@ class TenantModules
         return [
             self::DASHBOARD,
             self::CUSTOMERS,
+            self::CUSTOMER_GROUPS,
             self::CUSTOMER_SITES,
             self::CONTRACTS,
             self::AREAS,
@@ -116,7 +120,6 @@ class TenantModules
     }
 
     /**
-     * @param  mixed  $modules
      * @return array<int, string>
      */
     public function normalizeModuleList(mixed $modules): array

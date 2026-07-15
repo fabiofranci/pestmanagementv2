@@ -326,7 +326,7 @@ class SeedAzDemoData extends Command
             TenantModules::CUSTOMER_SITES,
             TenantModules::CUSTOMERS,
             TenantModules::SERVICE_TYPES,
-            'customer_groups',
+            TenantModules::CUSTOMER_GROUPS,
         ];
 
         return collect($requestedModules)

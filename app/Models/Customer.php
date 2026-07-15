@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\UsesTenantConnection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Customer extends Model
@@ -14,6 +15,7 @@ class Customer extends Model
 
     protected $fillable = [
         'tenant_id',
+        'customer_group_id',
         'legacy_customer_code',
         'name',
         'legal_name',
@@ -51,6 +53,11 @@ class Customer extends Model
     public function tenant()
     {
         return $this->belongsTo(Tenant::class);
+    }
+
+    public function customerGroup(): BelongsTo
+    {
+        return $this->belongsTo(CustomerGroup::class);
     }
 
     public function sites(): HasMany

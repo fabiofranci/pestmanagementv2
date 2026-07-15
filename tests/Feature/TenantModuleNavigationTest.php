@@ -2,13 +2,14 @@
 
 namespace Tests\Feature;
 
+use App\Filament\Pages\Dashboard;
 use App\Filament\Resources\Areas\AreaResource;
 use App\Filament\Resources\Contracts\ContractResource;
-use App\Filament\Resources\CustomerSites\CustomerSiteResource;
+use App\Filament\Resources\CustomerGroups\CustomerGroupResource;
 use App\Filament\Resources\Customers\CustomerResource;
+use App\Filament\Resources\CustomerSites\CustomerSiteResource;
 use App\Filament\Resources\Tenants\Pages\EditTenant;
 use App\Filament\Resources\Tenants\TenantResource;
-use App\Filament\Pages\Dashboard;
 use App\Filament\Widgets\BillingSchedulesDueWidget;
 use App\Filament\Widgets\ContractsExpiringWidget;
 use App\Filament\Widgets\ScheduledInterventionsDueWidget;
@@ -61,6 +62,32 @@ class TenantModuleNavigationTest extends TestCase
         $this->assertTrue(ContractResource::shouldRegisterNavigation());
         $this->assertFalse(AreaResource::shouldRegisterNavigation());
         $this->assertFalse(AreaResource::canAccess());
+        $this->assertFalse(CustomerGroupResource::shouldRegisterNavigation());
+    }
+
+    public function test_customer_groups_module_respects_enabled_modules(): void
+    {
+        $tenant = $this->createTenant([
+            TenantModules::CUSTOMERS,
+        ]);
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(CurrentTenant::class)->set($tenant);
+
+        $this->assertFalse(CustomerGroupResource::shouldRegisterNavigation());
+        $this->assertFalse(CustomerGroupResource::canAccess());
+
+        $tenant->update([
+            'enabled_modules' => [
+                TenantModules::CUSTOMERS,
+                TenantModules::CUSTOMER_GROUPS,
+            ],
+        ]);
+        app(CurrentTenant::class)->set($tenant->refresh());
+
+        $this->assertTrue(CustomerGroupResource::shouldRegisterNavigation());
+        $this->assertTrue(CustomerGroupResource::canAccess());
     }
 
     public function test_custom_module_order_changes_navigation_sort(): void
@@ -81,6 +108,24 @@ class TenantModuleNavigationTest extends TestCase
         $this->assertSame(10, ContractResource::getNavigationSort());
         $this->assertSame(20, CustomerSiteResource::getNavigationSort());
         $this->assertSame(30, CustomerResource::getNavigationSort());
+    }
+
+    public function test_module_order_can_sort_customer_groups(): void
+    {
+        $tenant = $this->createTenant(
+            enabledModules: null,
+            moduleOrder: [
+                TenantModules::CUSTOMER_GROUPS,
+                TenantModules::CUSTOMERS,
+            ],
+        );
+        $user = $this->createTenantAdmin($tenant);
+
+        $this->actingAs($user);
+        app(CurrentTenant::class)->set($tenant);
+
+        $this->assertSame(10, CustomerGroupResource::getNavigationSort());
+        $this->assertSame(20, CustomerResource::getNavigationSort());
     }
 
     public function test_module_missing_from_custom_order_is_sorted_after_configured_modules(): void

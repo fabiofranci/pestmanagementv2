@@ -83,6 +83,7 @@ class AzSeedDemoDataCommandTest extends TestCase
             TenantModules::CUSTOMER_SITES,
             TenantModules::CUSTOMERS,
             TenantModules::SERVICE_TYPES,
+            TenantModules::CUSTOMER_GROUPS,
         ];
 
         $this->assertSame(Tenant::CONTRACT_SERVICE_MODE_SINGLE, $tenant->contract_service_mode);
@@ -127,6 +128,7 @@ class AzSeedDemoDataCommandTest extends TestCase
             $this->assertSame('ANGIPLAST SRL', $customer->legal_name);
             $this->assertSame('OSTUNI', $customer->city);
             $this->assertSame('IT', $customer->country);
+            $this->assertNull($customer->customer_group_id);
 
             $site = CustomerSite::query()
                 ->where('customer_id', $customer->getKey())
