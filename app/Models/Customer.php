@@ -106,7 +106,7 @@ class Customer extends Model
             'tenant_id' => $this->tenant_id,
             'customer_id' => $this->getKey(),
             'auto_created_from_customer' => true,
-            'name' => filled($this->name) ? $this->name : 'Sede principale',
+            'name' => filled($this->display_name) ? $this->display_name : 'Sede principale',
             'address' => $this->address,
             'city' => $this->city,
             'postcode' => $this->postcode,
