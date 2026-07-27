@@ -75,7 +75,8 @@ class CustomerSiteDefaultAndContractServiceFormTest extends TestCase
         $this->withinTenant($tenant, function (Tenant $tenant): void {
             $customer = Customer::query()->create([
                 'tenant_id' => $tenant->getKey(),
-                'name' => 'ANGIPLAST SRL',
+                'name' => 'Referente Angiplast',
+                'legal_name' => 'ANGIPLAST SRL',
                 'address' => 'Via Roma 1',
                 'city' => 'OSTUNI',
                 'postcode' => '72017',
@@ -92,6 +93,7 @@ class CustomerSiteDefaultAndContractServiceFormTest extends TestCase
             $this->assertTrue($customer->shouldUseCustomerDataAsDefaultSite());
             $this->assertTrue($site->auto_created_from_customer);
             $this->assertSame('ANGIPLAST SRL', $site->name);
+            $this->assertSame('Referente Angiplast', $site->contact_name);
             $this->assertSame('Via Roma 1', $site->address);
             $this->assertSame('OSTUNI', $site->city);
             $this->assertSame('72017', $site->postcode);
