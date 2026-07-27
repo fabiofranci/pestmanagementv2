@@ -29,9 +29,13 @@ class ContractsTable
                     ->placeholder('-')
                     ->searchable()
                     ->toggleable(),
-                TextColumn::make('customer.name')
+                TextColumn::make('customer_display_name')
                     ->label('Cliente')
-                    ->searchable(),
+                    ->state(fn ($record): string => $record->customer?->display_name ?? '-')
+                    ->searchable(query: fn (Builder $query, string $search): Builder => $query
+                        ->whereHas('customer', fn (Builder $query): Builder => $query
+                            ->where('legal_name', 'like', "%{$search}%")
+                            ->orWhere('name', 'like', "%{$search}%"))),
                 TextColumn::make('site.name')
                     ->label('Sede')
                     ->searchable(),
@@ -172,8 +176,8 @@ class ContractsTable
     protected static function customerOptions(): array
     {
         return Customer::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'legacy_customer_code'])
+            ->orderByRaw('COALESCE(NULLIF(legal_name, \'\'), name)')
+            ->get(['id', 'name', 'legal_name', 'legacy_customer_code'])
             ->mapWithKeys(fn (Customer $customer): array => [
                 $customer->getKey() => static::customerOptionLabel($customer),
             ])
@@ -182,10 +186,12 @@ class ContractsTable
 
     protected static function customerOptionLabel(Customer $customer): string
     {
+        $displayName = $customer->display_name;
+
         if (filled($customer->legacy_customer_code)) {
-            return "{$customer->legacy_customer_code} - {$customer->name}";
+            return "{$customer->legacy_customer_code} - {$displayName}";
         }
 
-        return $customer->name;
+        return $displayName;
     }
 }

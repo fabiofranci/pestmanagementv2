@@ -63,6 +63,11 @@ class Customer extends Model
         ];
     }
 
+    public function getDisplayNameAttribute(): string
+    {
+        return filled($this->legal_name) ? $this->legal_name : $this->name;
+    }
+
     public function shouldUseCustomerDataAsDefaultSite(): bool
     {
         return (bool) $this->default_site_same_as_customer;

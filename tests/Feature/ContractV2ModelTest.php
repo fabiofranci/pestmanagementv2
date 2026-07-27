@@ -360,7 +360,11 @@ class ContractV2ModelTest extends TestCase
         $tenant = $this->createTenant();
 
         $this->withinTenant($tenant, function (Tenant $tenant): void {
-            $this->createContractFixture($tenant, 'CTR-ADMIN', 'Cliente Admin');
+            [$contract] = $this->createContractFixture($tenant, 'CTR-ADMIN', 'Referente Admin');
+
+            $contract->customer()->update([
+                'legal_name' => 'Azienda Admin Srl',
+            ]);
         });
 
         $user = $this->createTenantAdmin($tenant);
@@ -369,7 +373,8 @@ class ContractV2ModelTest extends TestCase
             ->get(ContractResource::getUrl('index'))
             ->assertOk()
             ->assertSee('CTR-ADMIN')
-            ->assertSee('Cliente Admin');
+            ->assertSee('Azienda Admin Srl')
+            ->assertDontSee('Referente Admin');
     }
 
     public function test_livewire_update_route_bootstraps_tenant_context(): void

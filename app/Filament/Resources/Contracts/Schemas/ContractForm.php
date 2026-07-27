@@ -62,6 +62,7 @@ class ContractForm
                         Select::make('customer_id')
                             ->label('Cliente')
                             ->options(fn (): array => static::customerOptions())
+                            ->default(fn (): ?int => request()->integer('customer_id') ?: null)
                             ->searchable()
                             ->preload()
                             ->live()
@@ -95,6 +96,7 @@ class ContractForm
                                 ->all())
                             ->searchable()
                             ->preload()
+                            ->default(fn (): ?int => request()->integer('customer_site_id') ?: null)
                             ->live()
                             ->afterStateUpdated(function (Set $set, mixed $state): void {
                                 $set('primary_service.customer_site_id', $state);
@@ -498,8 +500,8 @@ class ContractForm
     protected static function customerOptions(): array
     {
         return Customer::query()
-            ->orderBy('name')
-            ->get(['id', 'name', 'legacy_customer_code'])
+            ->orderByRaw('COALESCE(NULLIF(legal_name, \'\'), name)')
+            ->get(['id', 'name', 'legal_name', 'legacy_customer_code'])
             ->mapWithKeys(fn (Customer $customer): array => [
                 $customer->getKey() => static::customerOptionLabel($customer),
             ])
@@ -508,11 +510,13 @@ class ContractForm
 
     protected static function customerOptionLabel(Customer $customer): string
     {
+        $displayName = $customer->display_name;
+
         if (filled($customer->legacy_customer_code)) {
-            return "{$customer->legacy_customer_code} - {$customer->name}";
+            return "{$customer->legacy_customer_code} - {$displayName}";
         }
 
-        return $customer->name;
+        return $displayName;
     }
 
     protected static function customerSiteCreateForm(): array

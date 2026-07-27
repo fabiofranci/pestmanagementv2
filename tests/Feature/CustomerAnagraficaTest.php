@@ -104,6 +104,15 @@ class CustomerAnagraficaTest extends TestCase
             $this->assertSame('cliente@pec.example.com', $customer->pec);
             $this->assertSame('ABC1234', $customer->sdi_code);
             $this->assertSame('01234567890', $customer->tax_id);
+            $this->assertSame('Rossi Disinfestazioni Srl', $customer->display_name);
+
+            $privateCustomer = Customer::query()->create([
+                'tenant_id' => $tenant->getKey(),
+                'name' => 'Giuseppe Verdi',
+                'status' => 'active',
+            ]);
+
+            $this->assertSame('Giuseppe Verdi', $privateCustomer->display_name);
         });
     }
 
