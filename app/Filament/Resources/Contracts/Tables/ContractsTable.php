@@ -29,9 +29,11 @@ class ContractsTable
                     ->placeholder('-')
                     ->searchable()
                     ->toggleable(),
-                TextColumn::make('customer_display_name')
+                TextColumn::make('customer.legal_name')
                     ->label('Cliente')
-                    ->state(fn ($record): string => $record->customer?->display_name ?? '-')
+                    ->formatStateUsing(fn (?string $state, $record): string => filled($state)
+                        ? $state
+                        : ($record->customer?->name ?? '-'))
                     ->searchable(query: fn (Builder $query, string $search): Builder => $query
                         ->whereHas('customer', fn (Builder $query): Builder => $query
                             ->where('legal_name', 'like', "%{$search}%")
